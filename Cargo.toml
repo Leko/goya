@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+  "goya-cli",
   "morphological-analysis",
   "dictionary",
 ]
