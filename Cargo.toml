@@ -2,6 +2,6 @@
 
 members = [
   "goya-cli",
-  "morphological-analysis",
+  "morphological_analysis",
   "dictionary",
 ]
