@@ -1,4 +1,5 @@
 use morphological_analysis::double_array::DoubleArray;
+use morphological_analysis::extractor::extract;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::collections::HashMap;
@@ -24,7 +25,7 @@ pub fn start() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let result = morphological_analysis::extract(&line, &demodict());
+                let result = extract(&line, &demodict());
                 println!("{:?}", result);
             }
             Err(ReadlineError::Interrupted) => break,

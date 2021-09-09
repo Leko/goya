@@ -18,6 +18,13 @@ impl DoubleArray {
         DoubleArray { base, check, codes }
     }
 
+    pub fn from() -> DoubleArray {
+        let base: Vec<i32> = vec![];
+        let check: Vec<usize> = vec![];
+        let codes: HashMap<char, usize> = HashMap::new();
+        DoubleArray::new(base, check, codes)
+    }
+
     pub fn match_char(&self, s: usize, c: &char) -> Option<MatchResult> {
         if self.base[s] < 0 {
             return None;
