@@ -10,3 +10,4 @@ morphological_analysis = { path = "../morphological_analysis" }
 rustyline = "9.0.0"
 indexmap = "1.7"
 itertools = "0.10"
+bincode = "1.3"

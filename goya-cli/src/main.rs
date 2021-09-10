@@ -13,13 +13,18 @@ fn main() {
     match args.get(1) {
         Some(dir) => match build(dir) {
             Ok(dict) => {
-                repl::start(&dict);
+                let encoded = bincode::serialize(&dict).unwrap();
+                std::fs::write("./cache.bin", encoded).expect("Failed to write dictionary");
             }
             Err(err) => {
                 println!("{:?}", err);
             }
         },
-        None => repl::start(&demodict()),
+        None => {
+            let encoded = std::fs::read("./cache.bin").expect("Failed to write dictionary");
+            let dict = bincode::deserialize(&encoded[..]).unwrap();
+            repl::start(&dict)
+        }
     }
 }
 

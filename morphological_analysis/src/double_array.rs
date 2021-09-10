@@ -1,6 +1,7 @@
 use super::trie_tree::TrieTree;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -13,7 +14,7 @@ pub struct MatchResult {
     pub can_stop: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DoubleArray {
     pub codes: IndexSet<char>,
     pub base: Vec<i32>,
