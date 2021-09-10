@@ -15,8 +15,9 @@ pub struct ExtractResult {
 pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
     let mut s = 1;
     let mut tokens: Vec<Token> = vec![];
-
-    for (i, c) in text.chars().enumerate() {
+    let mut haystack = String::from(text);
+    haystack.push('\0');
+    for (i, c) in haystack.chars().enumerate() {
         // Stop continue searching to start new matching
         if s != 1 && da.match_char(s, &c).is_none() {
             s = 1
@@ -52,18 +53,18 @@ pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use indexmap::set::IndexSet;
 
     fn uniondict() -> DoubleArray {
         // registered words: "a" and "bc"
-        let mut codes: HashMap<char, usize> = HashMap::new();
-        codes.insert('\0', 0);
-        codes.insert('a', 1);
-        codes.insert('b', 2);
-        codes.insert('c', 3);
+        let mut codes = IndexSet::new();
+        codes.insert('\0');
+        codes.insert('a');
+        codes.insert('b');
+        codes.insert('c');
         let base: Vec<i32> = vec![0, 3, 0, -1, 3, 3, 7, -1];
         let check: Vec<usize> = vec![0, 0, 0, 4, 1, 1, 5, 6];
-        return DoubleArray::new(base, check, codes);
+        return DoubleArray::from(base, check, codes);
     }
 
     #[test]
