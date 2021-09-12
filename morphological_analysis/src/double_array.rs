@@ -28,10 +28,14 @@ impl DoubleArray {
         DoubleArray { base, check, codes }
     }
 
-    pub fn from_trie(trie: &TrieTree) -> DoubleArray {
+    pub fn from_trie(trie: &TrieTree, f: impl Fn((usize, usize))) -> DoubleArray {
         let mut state_cache = HashMap::new();
         let mut da = DoubleArray::new();
+        let mut completed = 0;
+        let total = trie.size();
         for (prefix, node) in trie.entires() {
+            f((completed, total));
+            completed += 1;
             // root node
             if prefix.is_empty() {
                 for next_c in node.children.keys().sorted() {

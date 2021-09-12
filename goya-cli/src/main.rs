@@ -1,28 +1,30 @@
 mod repl;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic;
 use morphological_analysis::trie_tree::TrieTree;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     match args.get(1) {
         Some(dir) => match build(dir) {
-            Ok(dict) => {
-                let encoded = bincode::serialize(&dict).unwrap();
-                std::fs::write("./cache.bin", encoded).expect("Failed to write dictionary");
+            Ok(_) => {
+                println!("DONE");
             }
             Err(err) => {
                 println!("{:?}", err);
             }
         },
         None => {
-            let encoded = std::fs::read("./cache.bin").expect("Failed to load dictionary");
-            let dict = bincode::deserialize(&encoded[..]).unwrap();
+            let encoded = std::fs::read("./da.bin").expect("Failed to load dictionary");
+            let da = bincode::deserialize(&encoded[..]).unwrap();
+
+            let encoded = std::fs::read("./vocab.bin").expect("Failed to load vocabulary");
+            let vocab = bincode::deserialize(&encoded[..]).unwrap();
 
             // let mut trie = TrieTree::new();
             // trie.append(1, "あ");
@@ -30,27 +32,13 @@ fn main() {
             // let dict = DoubleArray::from_trie(&trie);
 
             // println!("{:#?}", trie);
-            println!("{:#?}", dict);
-            repl::start(&dict)
+            // println!("{:#?}", dict);
+            repl::start(da, vocab)
         }
     }
 }
 
-fn build(path: &String) -> Result<DoubleArray, Box<dyn Error>> {
-    let mut stats = vec![];
-    for _ in 1..10 {
-        let timer = Instant::now();
-        ipadic::load_dir(path)?;
-        let spent = timer.elapsed();
-        stats.push(spent.as_millis());
-    }
-    println!(
-        "sum={}ms, avg={}ms",
-        stats.iter().sum::<u128>() as f32,
-        stats.iter().sum::<u128>() as f32 / stats.iter().count() as f32
-    );
-    panic!("debug");
-
+fn build(path: &String) -> Result<(), Box<dyn Error>> {
     let words = ipadic::load_dir(path)?;
     let mut dict = HashMap::new();
     let mut trie = TrieTree::new();
@@ -59,5 +47,23 @@ fn build(path: &String) -> Result<DoubleArray, Box<dyn Error>> {
         dict.insert(id, word);
         trie.append(id, &word.surface_form);
     }
-    Ok(DoubleArray::from_trie(&trie))
+
+    let pb = ProgressBar::new(words.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar}] {pos:>7}/{len:7} ({eta})")
+            .progress_chars("#>-"),
+    );
+    let da = DoubleArray::from_trie(&trie, |(completed, total)| {
+        pb.set_length(total as u64);
+        pb.set_position(completed as u64);
+    });
+
+    let encoded = bincode::serialize(&da).unwrap();
+    std::fs::write("./da.bin", encoded).expect("Failed to write dictionary");
+
+    let encoded = bincode::serialize(&dict).unwrap();
+    std::fs::write("./vocab.bin", encoded).expect("Failed to write dictionary");
+
+    Ok(())
 }

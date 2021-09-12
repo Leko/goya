@@ -1,9 +1,11 @@
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::extractor::extract;
+use morphological_analysis::vocabulary::Word;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::collections::HashMap;
 
-pub fn start(dict: &DoubleArray) {
+pub fn start(da: DoubleArray, dict: HashMap<usize, Word>) {
     // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
     if rl.load_history("history.txt").is_err() {}
@@ -15,8 +17,17 @@ pub fn start(dict: &DoubleArray) {
                     continue;
                 }
                 rl.add_history_entry(line.as_str());
-                let result = extract(&line, dict);
-                println!("{:?}", result);
+                let result = extract(&line, &da);
+                if result.tokens.is_empty() {
+                    println!("not found");
+                }
+                for t in result.tokens {
+                    if let Some(id) = t.id {
+                        if let Some(word) = dict.get(&id) {
+                            println!("{:#?}", word);
+                        }
+                    }
+                }
             }
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,

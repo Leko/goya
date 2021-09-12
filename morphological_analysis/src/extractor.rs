@@ -3,14 +3,13 @@ use super::double_array::INDEX_ROOT;
 
 #[derive(Debug)]
 pub struct Token {
-    id: Option<usize>,
-    start: usize,
-    len: usize,
+    pub id: Option<usize>,
+    pub start: usize,
+    pub len: usize,
 }
 #[derive(Debug)]
 pub struct ExtractResult {
-    text: String,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
 }
 
 pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
@@ -67,10 +66,7 @@ pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
 
         i += 1;
     }
-    return ExtractResult {
-        text: text.to_string(),
-        tokens,
-    };
+    return ExtractResult { tokens };
 }
 
 #[cfg(test)]

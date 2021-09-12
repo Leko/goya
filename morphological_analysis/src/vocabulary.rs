@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum LexicalCategory {
     Adjective,
     Adnominal,
@@ -16,12 +18,12 @@ pub enum LexicalCategory {
     Unknown,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ConjugationCategory {
     A,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
     pub surface_form: String,                              // 表層形
     pub left_context_id: usize,                            // 左文脈ID
@@ -37,14 +39,36 @@ pub struct Word {
     pub ruby: String,                                      // 読み
     pub pronounciation: String,                            // 発音
 }
-
-#[derive(Debug)]
-pub struct Vocabulary {
-    words: Vec<Word>,
-}
-
-impl Vocabulary {
-    pub fn new(words: Vec<Word>) -> Vocabulary {
-        Vocabulary { words }
+impl Word {
+    pub fn new(
+        surface_form: impl Into<String>,
+        left_context_id: usize,
+        right_context_id: usize,
+        cost: i16,
+        lexical_category: LexicalCategory,
+        lexical_subcategory1: Option<String>,
+        lexical_subcategory2: Option<String>,
+        lexical_subcategory3: Option<String>,
+        conjugation_category: Option<ConjugationCategory>,
+        conjugation: Option<String>,
+        infinitive: impl Into<String>,
+        ruby: impl Into<String>,
+        pronounciation: impl Into<String>,
+    ) -> Word {
+        Word {
+            surface_form: surface_form.into(),
+            left_context_id,
+            right_context_id,
+            cost,
+            lexical_category,
+            lexical_subcategory1: lexical_subcategory1,
+            lexical_subcategory2: lexical_subcategory2,
+            lexical_subcategory3: lexical_subcategory3,
+            conjugation_category,
+            conjugation: conjugation,
+            infinitive: infinitive.into(),
+            ruby: ruby.into(),
+            pronounciation: pronounciation.into(),
+        }
     }
 }
