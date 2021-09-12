@@ -1,10 +1,11 @@
 use super::double_array::DoubleArray;
-use super::double_array::MatchResult;
+use super::double_array::INDEX_ROOT;
 
 #[derive(Debug)]
-enum Token {
-    Known { id: usize, start: usize, len: usize },
-    Unknown { start: usize, len: usize },
+pub struct Token {
+    id: Option<usize>,
+    start: usize,
+    len: usize,
 }
 #[derive(Debug)]
 pub struct ExtractResult {
@@ -13,36 +14,58 @@ pub struct ExtractResult {
 }
 
 pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
-    let mut s = 1;
     let mut tokens: Vec<Token> = vec![];
-    let mut haystack = String::from(text);
-    haystack.push('\0');
-    for (i, c) in haystack.chars().enumerate() {
-        // Stop continue searching to start new matching
-        if s != 1 && da.match_char(s, &c).is_none() {
-            s = 1
-        }
-
-        match da.match_char(s, &c) {
-            // The string up to this point is a word we know. But the match is not over yet.
-            Some(MatchResult {
-                next_state,
-                can_stop,
-            }) => {
-                s = next_state;
-                if can_stop {
-                    tokens.push(Token::Known {
-                        id: 1,    // FIXME
-                        start: 1, // FIXME
-                        len: i,   // FIXME
-                    });
-                    s = 1;
+    let mut i: usize = 0;
+    while i < text.chars().count() {
+        let c = text.chars().nth(i).unwrap();
+        if let Ok((mut cursor, _)) = da.transition(INDEX_ROOT, c) {
+            let mut matched: Vec<Token> = vec![];
+            match da.transition(cursor as usize, '\0') {
+                Ok((_, stop_base)) => {
+                    if stop_base < 0 {
+                        matched.push(Token {
+                            id: Some((stop_base * -1) as usize),
+                            start: i,
+                            len: i + 1,
+                        });
+                    }
+                }
+                Err(_) => {}
+            }
+            for (j, c) in text.chars().skip(i + 1).enumerate() {
+                match da.transition(cursor as usize, c) {
+                    Ok((next, next_base)) => {
+                        if next_base < 0 {
+                            matched.push(Token {
+                                id: Some((next_base * -1) as usize),
+                                start: i,
+                                len: j + 1,
+                            });
+                        }
+                        match da.transition(next as usize, '\0') {
+                            Ok((_, stop_base)) => {
+                                if stop_base < 0 {
+                                    matched.push(Token {
+                                        id: Some((stop_base * -1) as usize),
+                                        start: i,
+                                        len: j + 1,
+                                    });
+                                }
+                            }
+                            Err(_) => {}
+                        }
+                        cursor += next;
+                    }
+                    Err(_) => break,
                 }
             }
-            None => {
-                s = 1;
+            if let Some(longest) = matched.into_iter().max_by_key(|m| m.len) {
+                i += longest.len - 1;
+                tokens.push(longest);
             }
         }
+
+        i += 1;
     }
     return ExtractResult {
         text: text.to_string(),

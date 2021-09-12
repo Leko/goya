@@ -1,12 +1,12 @@
 mod repl;
 
-use indexmap::set::IndexSet;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic;
 use morphological_analysis::trie_tree::TrieTree;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
+use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -21,14 +21,36 @@ fn main() {
             }
         },
         None => {
-            let encoded = std::fs::read("./cache.bin").expect("Failed to write dictionary");
+            let encoded = std::fs::read("./cache.bin").expect("Failed to load dictionary");
             let dict = bincode::deserialize(&encoded[..]).unwrap();
+
+            // let mut trie = TrieTree::new();
+            // trie.append(1, "あ");
+            // trie.append(2, "a");
+            // let dict = DoubleArray::from_trie(&trie);
+
+            // println!("{:#?}", trie);
+            println!("{:#?}", dict);
             repl::start(&dict)
         }
     }
 }
 
 fn build(path: &String) -> Result<DoubleArray, Box<dyn Error>> {
+    let mut stats = vec![];
+    for _ in 1..10 {
+        let timer = Instant::now();
+        ipadic::load_dir(path)?;
+        let spent = timer.elapsed();
+        stats.push(spent.as_millis());
+    }
+    println!(
+        "sum={}ms, avg={}ms",
+        stats.iter().sum::<u128>() as f32,
+        stats.iter().sum::<u128>() as f32 / stats.iter().count() as f32
+    );
+    panic!("debug");
+
     let words = ipadic::load_dir(path)?;
     let mut dict = HashMap::new();
     let mut trie = TrieTree::new();
@@ -38,16 +60,4 @@ fn build(path: &String) -> Result<DoubleArray, Box<dyn Error>> {
         trie.append(id, &word.surface_form);
     }
     Ok(DoubleArray::from_trie(&trie))
-}
-
-fn demodict() -> DoubleArray {
-    // registered words: "a" and "bc"
-    let mut codes: IndexSet<char> = IndexSet::new();
-    codes.insert('\0');
-    codes.insert('a');
-    codes.insert('b');
-    codes.insert('c');
-    let base: Vec<i32> = vec![0, 3, 0, -1, 3, 3, 7, -1];
-    let check: Vec<usize> = vec![0, 0, 0, 4, 1, 1, 5, 6];
-    return DoubleArray::from(base, check, codes);
 }

@@ -24,8 +24,8 @@ type IPADictionaryLine = (
 pub fn load_dir(dir: &String) -> Result<Vec<Word>, Box<dyn Error>> {
     let mut words = vec![];
     // TODO: It's for debug
-    let buff = PathBuf::from(dir).join("Filler.csv");
-    // let buff = PathBuf::from(dir).join("*.csv");
+    // let buff = PathBuf::from(dir).join("Filler.csv");
+    let buff = PathBuf::from(dir).join("*.csv");
     let pattern = buff.to_str().expect("Failed to build a glob pattern");
     for path in glob(pattern)? {
         words.append(&mut load_file(path?)?);

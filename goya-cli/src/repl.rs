@@ -11,6 +11,9 @@ pub fn start(dict: &DoubleArray) {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
+                if line.is_empty() {
+                    continue;
+                }
                 rl.add_history_entry(line.as_str());
                 let result = extract(&line, dict);
                 println!("{:?}", result);
