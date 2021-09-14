@@ -15,133 +15,305 @@ pub struct ExtractResult {
 pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
     let mut tokens: Vec<Token> = vec![];
     let mut i: usize = 0;
-    while i < text.chars().count() {
-        let c = text.chars().nth(i).unwrap();
+    let chars: Vec<char> = text.chars().collect();
+    while i < chars.len() {
+        let c = chars[i];
         if let Ok((mut cursor, _)) = da.transition(INDEX_ROOT, c) {
             let mut matched: Vec<Token> = vec![];
-            match da.transition(cursor as usize, '\0') {
-                Ok((_, stop_base)) => {
-                    if stop_base < 0 {
-                        matched.push(Token {
-                            id: Some((stop_base * -1) as usize),
-                            start: i,
-                            len: i + 1,
-                        });
-                    }
-                }
-                Err(_) => {}
+            if let Ok(wid) = da.stop(cursor as usize) {
+                matched.push(Token {
+                    id: Some(wid),
+                    start: i,
+                    len: i + 1,
+                });
             }
-            for (j, c) in text.chars().skip(i + 1).enumerate() {
+            let mut j = i + 1;
+            while j < chars.len() {
+                let c = chars[j];
                 match da.transition(cursor as usize, c) {
-                    Ok((next, next_base)) => {
-                        if next_base < 0 {
+                    Ok((next, _)) => {
+                        if let Ok(wid) = da.stop(next as usize) {
                             matched.push(Token {
-                                id: Some((next_base * -1) as usize),
+                                id: Some(wid),
                                 start: i,
-                                len: j + 1,
+                                len: i + 1,
                             });
                         }
-                        match da.transition(next as usize, '\0') {
-                            Ok((_, stop_base)) => {
-                                if stop_base < 0 {
-                                    matched.push(Token {
-                                        id: Some((stop_base * -1) as usize),
-                                        start: i,
-                                        len: j + 1,
-                                    });
-                                }
-                            }
-                            Err(_) => {}
-                        }
-                        cursor += next;
+                        cursor = next;
                     }
-                    Err(_) => break,
+                    Err(_) => {
+                        break;
+                    }
                 }
+                j += 1;
             }
             if let Some(longest) = matched.into_iter().max_by_key(|m| m.len) {
-                i += longest.len - 1;
+                // i += longest.len - 1;
                 tokens.push(longest);
             }
         }
 
         i += 1;
     }
-    return ExtractResult { tokens };
+    ExtractResult { tokens }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::trie_tree::TrieTree;
     use super::*;
-    use indexmap::set::IndexSet;
+    use indexmap::IndexSet;
 
-    fn uniondict() -> DoubleArray {
-        // registered words: "a" and "bc"
-        let mut codes = IndexSet::new();
-        codes.insert('\0');
-        codes.insert('a');
-        codes.insert('b');
-        codes.insert('c');
-        let base: Vec<i32> = vec![0, 3, 0, -1, 3, 3, 7, -1];
-        let check: Vec<usize> = vec![0, 0, 0, 4, 1, 1, 5, 6];
-        return DoubleArray::from(base, check, codes);
+    fn dict1c1w() -> DoubleArray {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        // words: "あ"
+        DoubleArray {
+            codes: chars,
+            base: vec![0, 1, -1],
+            check: vec![0, 0, 1],
+        }
+    }
+
+    fn dict2c1w() -> DoubleArray {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        // words: "ああ"
+        DoubleArray {
+            codes: chars,
+            base: vec![0, 1, 2, -1],
+            check: vec![0, 0, 1, 2],
+        }
+    }
+
+    fn dict2c2w() -> DoubleArray {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('い');
+        chars.insert('う');
+        // words: "あい", "あう"
+        DoubleArray {
+            codes: chars,
+            base: vec![0, 1, 1, -1, -2],
+            check: vec![0, 0, 1, 2, 2],
+        }
     }
 
     #[test]
-    fn uniondict_all_match() {
-        let da = uniondict();
+    fn dict1c1w_just_the_string() {
+        assert_eq!(extract("あ", &dict1c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict1c1w_starts_with() {
+        assert_eq!(extract("あx", &dict1c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict1c1w_ends_with() {
+        assert_eq!(extract("xあ", &dict1c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict1c1w_wrapped_with() {
+        assert_eq!(extract("xあx", &dict1c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict1c1w_2char_sequence() {
+        assert_eq!(extract("ああ", &dict1c1w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict1c1w_wrapped_by() {
+        assert_eq!(extract("あxあ", &dict1c1w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict1c1w_2char_wrapped_by() {
+        assert_eq!(extract("xあxあx", &dict1c1w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict1c1w_3char_wrapped_by() {
+        assert_eq!(extract("xあxあxあx", &dict1c1w()).tokens.len(), 3);
+    }
+    #[test]
+    fn dict1c1w_3char_sequence() {
+        assert_eq!(extract("あああ", &dict1c1w()).tokens.len(), 3);
+    }
+    #[test]
+    fn dict1c1w_4char_wrapped_by() {
+        assert_eq!(extract("xあxあxあxあx", &dict1c1w()).tokens.len(), 4);
+    }
+    #[test]
+    fn dict1c1w_4char_sequence() {
+        assert_eq!(extract("ああああ", &dict1c1w()).tokens.len(), 4);
+    }
+    #[test]
+    fn dict1c1w_unknown_word() {
+        assert_eq!(extract("x", &dict1c1w()).tokens.len(), 0);
+    }
+    #[test]
+    fn dict1c1w_empty_string() {
+        assert_eq!(extract("", &dict1c1w()).tokens.len(), 0);
+    }
+
+    #[test]
+    fn dict2c1w_just_the_string() {
+        assert_eq!(extract("ああ", &dict2c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c1w_starts_with() {
+        assert_eq!(extract("ああx", &dict2c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c1w_ends_with() {
+        assert_eq!(extract("xああ", &dict2c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c1w_wrapped_with() {
+        assert_eq!(extract("xああx", &dict2c1w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c1w_2char_sequence() {
+        // 3 = [0, 1], [1, 2], and [2, 3]
+        assert_eq!(extract("ああああ", &dict2c1w()).tokens.len(), 3);
+    }
+    #[test]
+    fn dict2c1w_wrapped_by() {
+        assert_eq!(extract("ああxああ", &dict2c1w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict2c1w_2char_wrapped_by() {
+        assert_eq!(extract("xああxああx", &dict2c1w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict2c1w_3char_wrapped_by() {
+        assert_eq!(extract("xああxああxああx", &dict2c1w()).tokens.len(), 3);
+    }
+    #[test]
+    fn dict2c1w_3char_sequence() {
+        assert_eq!(extract("ああああああ", &dict2c1w()).tokens.len(), 5);
+    }
+    #[test]
+    fn dict2c1w_4char_wrapped_by() {
+        assert_eq!(
+            extract("xああxああxああxああx", &dict2c1w()).tokens.len(),
+            4
+        );
+    }
+    #[test]
+    fn dict2c1w_4char_sequence() {
+        assert_eq!(extract("ああああああああ", &dict2c1w()).tokens.len(), 7);
+    }
+    #[test]
+    fn dict2c1w_unknown_word() {
+        assert_eq!(extract("x", &dict2c1w()).tokens.len(), 0);
+    }
+    #[test]
+    fn dict2c1w_empty_string() {
+        assert_eq!(extract("", &dict2c1w()).tokens.len(), 0);
+    }
+
+    #[test]
+    fn dict2c2w_just_the_string() {
+        assert_eq!(extract("あい", &dict2c2w()).tokens.len(), 1);
+        assert_eq!(extract("あう", &dict2c2w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c2w_starts_with() {
+        assert_eq!(extract("あいx", &dict2c2w()).tokens.len(), 1);
+        assert_eq!(extract("あうx", &dict2c2w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c2w_ends_with() {
+        assert_eq!(extract("xあい", &dict2c2w()).tokens.len(), 1);
+        assert_eq!(extract("xあう", &dict2c2w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c2w_wrapped_with() {
+        assert_eq!(extract("xあいx", &dict2c2w()).tokens.len(), 1);
+        assert_eq!(extract("xあうx", &dict2c2w()).tokens.len(), 1);
+    }
+    #[test]
+    fn dict2c2w_2char_sequence() {
+        assert_eq!(extract("あいあう", &dict2c2w()).tokens.len(), 2);
+        assert_eq!(extract("あいあい", &dict2c2w()).tokens.len(), 2);
+        assert_eq!(extract("あうあい", &dict2c2w()).tokens.len(), 2);
+    }
+    #[test]
+    fn dict2c2w_wrapped_by() {
+        assert_eq!(extract("あいxあい", &dict2c2w()).tokens.len(), 2);
+        assert_eq!(extract("あいxあう", &dict2c2w()).tokens.len(), 2);
+        assert_eq!(extract("あうxあう", &dict2c2w()).tokens.len(), 2);
+    }
+
+    #[test]
+    fn test_dict2c2w() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('う');
+        chars.insert('ん');
+        chars.insert('と');
+
+        let da = DoubleArray {
+            codes: chars,
+            base: vec![0, 1, 1, 1, -1],
+            check: vec![0, 0, 1, 2, 3],
+        };
+        assert_eq!(extract("うん", &da).tokens.len(), 0);
+        assert_eq!(extract("うんと", &da).tokens.len(), 1);
+        assert_eq!(extract("うーんと", &da).tokens.len(), 0);
+        assert_eq!(extract("うんとこどっこいしょ", &da).tokens.len(), 1);
+    }
+
+    #[test]
+    fn test_ipadic2() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('ー');
+
+        let da = DoubleArray {
+            codes: chars,
+            base: vec![0, 1, 3, -1, 0, -2],
+            check: vec![0, 0, 1, 2, 0, 2],
+        };
+
+        assert_eq!(extract("あ", &da).tokens.len(), 1);
+        assert_eq!(extract("あー", &da).tokens.len(), 1);
+    }
+
+    #[test]
+    fn test_dict3c2w() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('う');
+        chars.insert('ん');
+        chars.insert('と');
+        chars.insert('え');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "うんと");
+        trie.append(2, "ええと");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(extract("うん", &da).tokens.len(), 0);
+        assert_eq!(extract("ええ", &da).tokens.len(), 0);
+        assert_eq!(extract("うんと", &da).tokens.len(), 1);
+        assert_eq!(extract("ええと", &da).tokens.len(), 1);
+        assert_eq!(extract("うんとこどっこいしょ", &da).tokens.len(), 1);
+    }
+
+    // TODO: テストでIDちゃんと調べる。
+    // 探索自体はできてるっぽいがマッチング正しくない？
+    // ex. "うーん"って調べると"あの"が出てきてる
+
+    #[test]
+    fn test_a_and_bc() {
+        let mut trie = TrieTree::new();
+        trie.append(1, "a");
+        trie.append(2, "bc");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
         assert_eq!(extract("a", &da).tokens.len(), 1);
         assert_eq!(extract("bc", &da).tokens.len(), 1);
-    }
-
-    #[test]
-    fn uniondict_sequential_match() {
-        let da = uniondict();
-        assert_eq!(extract("aa", &da).tokens.len(), 2);
-        assert_eq!(extract("abc", &da).tokens.len(), 2);
-        assert_eq!(extract("bcbc", &da).tokens.len(), 2);
-        assert_eq!(extract("bca", &da).tokens.len(), 2);
-    }
-
-    #[test]
-    fn uniondict_starts_with_match() {
-        let da = uniondict();
-        assert_eq!(extract("ab", &da).tokens.len(), 1);
-        assert_eq!(extract("bcc", &da).tokens.len(), 1);
-    }
-
-    #[test]
-    fn uniondict_ends_with_match() {
-        let da = uniondict();
-        assert_eq!(extract("ba", &da).tokens.len(), 1);
-        assert_eq!(extract("cbc", &da).tokens.len(), 1);
-    }
-
-    #[test]
-    fn uniondict_starts_and_ends_with_match() {
-        let da = uniondict();
-        assert_eq!(extract("aba", &da).tokens.len(), 2);
-        assert_eq!(extract("bcxbc", &da).tokens.len(), 2);
-    }
-
-    #[test]
-    fn uniondict_partial_match_full_match() {
-        let da = uniondict();
-        assert_eq!(extract("ba", &da).tokens.len(), 1);
-        assert_eq!(extract("bbc", &da).tokens.len(), 1);
-    }
-
-    #[test]
-    fn uniondict_imcomplete_match() {
-        let da = uniondict();
-        assert_eq!(extract("b", &da).tokens.len(), 0);
-        assert_eq!(extract("bbb", &da).tokens.len(), 0);
-    }
-
-    #[test]
-    fn uniondict_unknown_chars() {
-        let da = uniondict();
-        assert_eq!(extract("x", &da).tokens.len(), 0);
-        assert_eq!(extract("xax", &da).tokens.len(), 1);
-        assert_eq!(extract("axa", &da).tokens.len(), 2);
     }
 }

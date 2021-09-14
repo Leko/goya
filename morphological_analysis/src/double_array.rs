@@ -33,13 +33,31 @@ impl DoubleArray {
         let mut da = DoubleArray::new();
         let mut completed = 0;
         let total = trie.size();
-        for (prefix, node) in trie.entires() {
+
+        let mut chars = trie
+            .entires_dfs()
+            .iter()
+            .map(|(prefix, _)| prefix)
+            .join("")
+            .chars()
+            .collect::<Vec<_>>();
+        chars.sort();
+        chars.dedup();
+        for c in chars {
+            da.insert_to_codes(c);
+        }
+
+        for (prefix, node) in trie.entires_dfs() {
+            if node.can_stop() {
+                continue;
+            }
             f((completed, total));
             completed += 1;
+
             // root node
             if prefix.is_empty() {
                 for next_c in node.children.keys().sorted() {
-                    let next_char_code = da.insert_to_codes(*next_c);
+                    let next_char_code = da.get_code(next_c).unwrap();
                     let t = da.base[INDEX_ROOT] + next_char_code as i32;
                     let t = as_usize(&t);
                     da.insert_to_check(t, INDEX_ROOT);
@@ -48,52 +66,65 @@ impl DoubleArray {
                 continue;
             }
 
-            let c = prefix.chars().last().unwrap_or('\0');
-            // FIXME: Is doing it here the best?
-            // We might have calculate it before appending to base
-            da.insert_to_codes(c);
-
             let s = *state_cache
                 .get(&prefix)
                 .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
-            if node.can_stop() {
-                da.insert_to_base(s, node.id.unwrap() as i32 * -1);
-                continue;
-            }
-            for next_c in node.children.keys().sorted() {
-                da.insert_to_codes(*next_c);
-            }
-            da.insert_to_base(s, da.find_s(s, &node.children));
-            for next_c in node.children.keys().sorted() {
-                let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
-                let t = as_usize(&t);
-                da.insert_to_check(t, s);
-                let key = concat_char_to_str(&prefix, *next_c);
-                state_cache.insert(key, t);
+            if node.children.len() == 1 && node.children.get(&'\0').is_some() {
+                let child = node.children.get(&'\0').unwrap();
+                da.insert_to_base(s, child.id.unwrap() as i32 * -1);
+            } else {
+                da.insert_to_base(s, da.find_s(s, &node.children));
+                for next_c in node.children.keys().sorted() {
+                    let child = node.children.get(next_c).unwrap();
+                    let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
+                    let t = as_usize(&t);
+                    da.insert_to_check(t, s);
+                    if child.can_stop() {
+                        da.insert_to_base(t, child.id.unwrap() as i32 * -1);
+                    } else {
+                        let key = concat_char_to_str(&prefix, *next_c);
+                        state_cache.insert(key, t);
+                    }
+                }
             }
         }
         da.base.shrink_to_fit();
         da.check.shrink_to_fit();
+        da.codes.shrink_to_fit();
         da
     }
 
-    pub fn transition(&self, from: usize, to: char) -> Result<(i32, i32), &str> {
-        match self.get_code(&to) {
-            Some(code) => {
-                let t = self.base.get(from).unwrap() + code as i32;
-                if t < 0 {
-                    return Err("already reached the end character");
-                }
-                if *self.check.get(t as usize).unwrap() == from {
-                    match self.base.get(t as usize) {
-                        Some(base) => Ok((t, *base)),
-                        None => Err("failed to fetch base"),
-                    }
-                } else {
-                    Err("failed to check")
-                }
-            }
-            None => Err("unknown char"),
+    pub fn transition(&self, from: usize, to: char) -> Result<(i32, Option<usize>), &str> {
+        let code = self.get_code(&to).ok_or("unknown char")?;
+        let s = self.base.get(from).ok_or("base: out of bounds")?;
+        let t = s + code as i32;
+        if t < 0 {
+            return Err("already reached the end character");
+        }
+        let next = self.check.get(as_usize(&t)).ok_or("check: out of bounds")?;
+        let base = self.base.get(t as usize).ok_or("failed to fetch base")?;
+        let wid = if *base < 0 {
+            Some(as_usize(&(base * -1)))
+        } else {
+            None
+        };
+        if *next == from {
+            Ok((t, wid))
+        } else {
+            Err("failed to check")
+        }
+    }
+
+    pub fn stop(&self, from: usize) -> Result<usize, &str> {
+        let s = self.base.get(from).ok_or("base[from]: out of bounds")?;
+        if *s < 0 {
+            return Ok(as_usize(&(s * -1)));
+        }
+        let next = self.base.get(as_usize(s)).ok_or("base[s]: out of bounds")?;
+        if *next < 0 {
+            Ok(as_usize(&(next * -1)))
+        } else {
+            Err("base[from] >= 0")
         }
     }
 
@@ -110,20 +141,33 @@ impl DoubleArray {
     }
 
     fn insert_to_base(&mut self, index: usize, value: i32) {
-        let resized = cmp::max(self.base.len(), index);
+        let resized = cmp::max(self.base.len(), index + 1);
         self.base.resize(resized, 0);
-        self.base.insert(index, value);
+        assert_eq!(
+            self.base[index], 0,
+            "index={} already used: {:?}",
+            index, self.base
+        );
+        self.base[index] = value;
     }
 
     fn insert_to_check(&mut self, index: usize, value: usize) {
-        let resized = cmp::max(self.check.len(), index);
+        let resized = cmp::max(self.check.len(), index + 1);
         self.check.resize(resized, 0);
-        self.check.insert(index, value);
+        self.check[index] = value;
     }
 
-    fn find_s(&self, s: usize, children: &HashMap<char, TrieTree>) -> i32 {
-        let mut position = s + 1;
-        let offsets: Vec<_> = children.keys().map(|c| self.get_code(c).unwrap()).collect();
+    fn find_s(&self, _s: usize, children: &HashMap<char, TrieTree>) -> i32 {
+        let mut position = INDEX_ROOT + 1;
+        let min_code = children
+            .keys()
+            .map(|c| self.get_code(c).unwrap())
+            .min()
+            .unwrap();
+        let offsets: Vec<_> = children
+            .keys()
+            .map(|c| self.get_code(c).unwrap() - min_code)
+            .collect();
         while !offsets
             .iter()
             .map(|code| *self.check.get(position + code).unwrap_or(&0))
@@ -131,7 +175,7 @@ impl DoubleArray {
         {
             position += 1;
         }
-        position as i32
+        (position - min_code) as i32
     }
 }
 
@@ -146,14 +190,124 @@ fn concat_char_to_str(text: &String, c: char) -> String {
     tmp
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn build_a_word() {
+    fn builds_a_word_that_has_1_char() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+
         let mut trie = TrieTree::new();
         trie.append(1, "あ");
-        let da = DoubleArray::from_trie(&trie);
-        // assert_eq!(extract("bc", &da).tokens.len(), 1);
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, -1]);
+        assert_eq!(da.check, vec![0, 0, 1]);
+    }
+
+    #[test]
+    fn builds_word_with_the_same_letter_in_succession() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "ああ");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, 2, -1]);
+        assert_eq!(da.check, vec![0, 0, 1, 2]);
+    }
+
+    #[test]
+    fn builds_two_words_that_have_1_char() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('い');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "あ");
+        trie.append(2, "い");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, -1, -2]);
+        assert_eq!(da.check, vec![0, 0, 1, 1]);
+    }
+
+    #[test]
+    fn builds_common_prefixed_words() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('い');
+        chars.insert('う');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "あい");
+        trie.append(2, "あう");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, 1, -1, -2]);
+        assert_eq!(da.check, vec![0, 0, 1, 2, 2]);
+    }
+
+    #[test]
+    fn builds_intersect_words() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('い');
+        chars.insert('う');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "あい");
+        trie.append(2, "いう");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, 2, 2, -1, -2]);
+        assert_eq!(da.check, vec![0, 0, 1, 1, 2, 3]);
+    }
+
+    #[test]
+    fn builds_3chars_word() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('う');
+        chars.insert('ん');
+        chars.insert('と');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "うんと");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, 0, 2, -1]);
+        assert_eq!(da.check, vec![0, 0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn builds_ipadic2() {
+        let mut chars = IndexSet::new();
+        chars.insert('\0');
+        chars.insert('あ');
+        chars.insert('ー');
+
+        let mut trie = TrieTree::new();
+        trie.append(1, "あ");
+        trie.append(2, "あー");
+        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+
+        assert_eq!(da.codes, chars);
+        assert_eq!(da.base, vec![0, 1, 3, -1, 0, -2]);
+        assert_eq!(da.check, vec![0, 0, 1, 2, 0, 2]);
     }
 }

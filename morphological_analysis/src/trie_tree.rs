@@ -20,7 +20,7 @@ impl TrieTree {
     }
 
     pub fn size(&self) -> usize {
-        self.entires().count()
+        self.entries().count()
     }
 
     pub fn append(&mut self, id: usize, word: &str) {
@@ -29,10 +29,26 @@ impl TrieTree {
         self.append_chars(id, &token, 0);
     }
 
-    pub fn entires(&self) -> TrieTreeVisitor {
+    pub fn entries(&self) -> TrieTreeVisitor {
         let mut open = VecDeque::new();
         open.push_back((String::new(), self));
         TrieTreeVisitor { open }
+    }
+
+    pub fn entires_dfs(&self) -> VecDeque<(String, &TrieTree)> {
+        self.dfs_collect(&String::new())
+    }
+
+    fn dfs_collect(&self, prefix: &String) -> VecDeque<(String, &TrieTree)> {
+        let mut open = VecDeque::new();
+        open.push_back((prefix.to_string(), self));
+        for c in self.children.keys().sorted() {
+            let child = self.children.get(c).unwrap();
+            let mut substr = String::from(prefix);
+            substr.push(*c);
+            open.append(&mut child.dfs_collect(&substr));
+        }
+        open
     }
 
     fn append_chars(&mut self, id: usize, text: &str, cursor: usize) {
@@ -68,5 +84,24 @@ impl<'a> Iterator for TrieTreeVisitor<'a> {
             }
             None => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TrieTree;
+
+    #[test]
+    fn builds_a_word_that_has_1_char() {
+        let mut trie = TrieTree::new();
+        trie.append(1, "あい");
+        trie.append(2, "いう");
+        assert_eq!(
+            trie.entires_dfs()
+                .iter()
+                .map(|(p, _)| p)
+                .collect::<Vec<_>>(),
+            vec!["", "あ", "あい", "あい\0", "い", "いう", "いう\0"]
+        );
     }
 }

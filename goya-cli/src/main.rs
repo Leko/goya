@@ -4,6 +4,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic;
 use morphological_analysis::trie_tree::TrieTree;
+use morphological_analysis::vocabulary::Word;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -24,15 +25,8 @@ fn main() {
             let da = bincode::deserialize(&encoded[..]).unwrap();
 
             let encoded = std::fs::read("./vocab.bin").expect("Failed to load vocabulary");
-            let vocab = bincode::deserialize(&encoded[..]).unwrap();
+            let vocab: HashMap<usize, Word> = bincode::deserialize(&encoded[..]).unwrap();
 
-            // let mut trie = TrieTree::new();
-            // trie.append(1, "あ");
-            // trie.append(2, "a");
-            // let dict = DoubleArray::from_trie(&trie);
-
-            // println!("{:#?}", trie);
-            // println!("{:#?}", dict);
             repl::start(da, vocab)
         }
     }
