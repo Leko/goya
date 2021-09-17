@@ -259,9 +259,9 @@ mod tests {
             check: vec![0, 0, 1, 2, 3],
         };
         assert_eq!(extract("うん", &da).tokens.len(), 0);
-        assert_eq!(extract("うんと", &da).tokens.len(), 1);
+        assert_eq!(extract("うんと", &da).tokens[0].id, Some(1));
         assert_eq!(extract("うーんと", &da).tokens.len(), 0);
-        assert_eq!(extract("うんとこどっこいしょ", &da).tokens.len(), 1);
+        assert_eq!(extract("うんとこどっこいしょ", &da).tokens[0].id, Some(1));
     }
 
     #[test]
@@ -277,8 +277,8 @@ mod tests {
             check: vec![0, 0, 1, 2, 0, 2],
         };
 
-        assert_eq!(extract("あ", &da).tokens.len(), 1);
-        assert_eq!(extract("あー", &da).tokens.len(), 1);
+        assert_eq!(extract("あ", &da).tokens[0].id, Some(1));
+        assert_eq!(extract("あー", &da).tokens[0].id, Some(2));
     }
 
     #[test]
@@ -297,14 +297,10 @@ mod tests {
 
         assert_eq!(extract("うん", &da).tokens.len(), 0);
         assert_eq!(extract("ええ", &da).tokens.len(), 0);
-        assert_eq!(extract("うんと", &da).tokens.len(), 1);
-        assert_eq!(extract("ええと", &da).tokens.len(), 1);
-        assert_eq!(extract("うんとこどっこいしょ", &da).tokens.len(), 1);
+        assert_eq!(extract("うんと", &da).tokens[0].id, Some(1));
+        assert_eq!(extract("ええと", &da).tokens[0].id, Some(2));
+        assert_eq!(extract("うんとこどっこいしょ", &da).tokens[0].id, Some(1));
     }
-
-    // TODO: テストでIDちゃんと調べる。
-    // 探索自体はできてるっぽいがマッチング正しくない？
-    // ex. "うーん"って調べると"あの"が出てきてる
 
     #[test]
     fn test_a_and_bc() {
@@ -313,7 +309,7 @@ mod tests {
         trie.append(2, "bc");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
 
-        assert_eq!(extract("a", &da).tokens.len(), 1);
-        assert_eq!(extract("bc", &da).tokens.len(), 1);
+        assert_eq!(extract("a", &da).tokens[0].id, Some(1));
+        assert_eq!(extract("bc", &da).tokens[0].id, Some(2));
     }
 }

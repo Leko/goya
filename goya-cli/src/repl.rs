@@ -1,11 +1,10 @@
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::extractor::extract;
-use morphological_analysis::vocabulary::Word;
+use morphological_analysis::ipadic::IPADic;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::collections::HashMap;
 
-pub fn start(da: DoubleArray, dict: HashMap<usize, Word>) {
+pub fn start(da: DoubleArray, dict: &IPADic) {
     // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
     if rl.load_history("history.txt").is_err() {}

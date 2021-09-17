@@ -1,9 +1,13 @@
 use super::vocabulary::{ConjugationCategory, LexicalCategory, Word};
 use encoding_rs::EUC_JP;
 use glob::glob;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
+use std::ops::RangeInclusive;
+use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
 const COL_SURFACE_FORM: usize = 0; // 表層形
@@ -20,18 +24,71 @@ const COL_INFINITIVE: usize = 10; // 原形
 const COL_RUBY: usize = 11; // 読み
 const COL_PRONOUNCIATION: usize = 12; // 発音
 
-pub fn load_dir(dir: &String) -> Result<Vec<Word>, Box<dyn Error>> {
-    let mut words = vec![];
-    let buff = PathBuf::from(dir).join("Filler.csv");
-    // let buff = PathBuf::from(dir).join("*.csv");
-    let pattern = buff.to_str().expect("Failed to build a glob pattern");
-    for path in glob(pattern)? {
-        words.append(&mut load_file(path?)?);
-    }
-    Ok(words)
+#[derive(Debug, Serialize, Deserialize)]
+enum OperationTiming {
+    OnlyUnknown,
+    Always,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct CharDefinition {
+    timing: OperationTiming,
+    group_by_same_kind: bool,
+    len: usize,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct CharClass {
+    range: RangeInclusive<char>,
+    category: String,
+    compatible_categories: Vec<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct CharClassifier {
+    chars: HashMap<String, CharDefinition>,
+    ranges: Vec<CharClass>,
 }
 
-fn load_file(path: PathBuf) -> Result<Vec<Word>, Box<dyn Error>> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IPADic {
+    pub vocabulary: HashMap<usize, Word>,
+    chars: CharClassifier,
+    matrix: HashMap<(usize, usize), i16>,
+}
+impl IPADic {
+    pub fn load_dir(dir: &String) -> Result<IPADic, Box<dyn Error>> {
+        let base = PathBuf::from(dir);
+        let chars = load_chars(Path::new(dir).join("char.def"))?;
+        let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
+
+        let csv_pattern = base.join("Filler.csv");
+        // let csv_pattern = base.join("*.csv");
+        let csv_pattern = csv_pattern
+            .to_str()
+            .ok_or("Failed to build a glob pattern")?;
+
+        let mut vocabulary = HashMap::new();
+        let mut id = 1;
+        for path in glob(csv_pattern)? {
+            for w in load_csv(path?)? {
+                vocabulary.insert(id, w);
+                id += 1;
+            }
+        }
+        Ok(IPADic {
+            vocabulary,
+            chars,
+            matrix,
+        })
+    }
+
+    pub fn get(&self, wid: &usize) -> Option<&Word> {
+        self.vocabulary.get(wid)
+    }
+}
+
+fn load_csv<P>(path: P) -> Result<Vec<Word>, Box<dyn Error>>
+where
+    P: AsRef<Path>,
+{
     let eucjp = fs::read(path)?;
     let (utf8, _, _) = EUC_JP.decode(&eucjp);
     let mut rdr = csv::Reader::from_reader(utf8.as_bytes());
@@ -79,6 +136,95 @@ fn load_file(path: PathBuf) -> Result<Vec<Word>, Box<dyn Error>> {
         ))
     }
     Ok(words)
+}
+
+fn load_chars<P>(path: P) -> Result<CharClassifier, Box<dyn Error>>
+where
+    P: AsRef<Path>,
+{
+    let eucjp = fs::read(path)?;
+    let (utf8, _, _) = EUC_JP.decode(&eucjp);
+    let lines = utf8
+        .lines()
+        .filter(|line| line.len() > 0 && !line.starts_with('#'))
+        .map(|line| Regex::new(r"#.*$").unwrap().replace(line, ""))
+        .collect::<Vec<_>>();
+
+    let head = lines.iter().take_while(|line| {
+        let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
+        !parts[0].starts_with("0x")
+    });
+    let mut chars = HashMap::new();
+    for line in head {
+        let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
+        let kind = parts[0].to_owned();
+        let timing = if parts[1] == "0" {
+            OperationTiming::OnlyUnknown
+        } else {
+            OperationTiming::Always
+        };
+        let group_by_same_kind = parts[2] == "1";
+        let len = parts[3].parse::<usize>()?;
+        chars.insert(
+            kind,
+            CharDefinition {
+                timing,
+                group_by_same_kind,
+                len,
+            },
+        );
+    }
+
+    let tail = lines.iter().skip_while(|line| {
+        let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
+        !parts[0].starts_with("0x")
+    });
+    let mut ranges = vec![];
+    for line in tail {
+        let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
+        let range = parts[0]
+            .split("..")
+            .map(|c| u32::from_str_radix(&c[2..], 16).unwrap())
+            .map(|c| char::from_u32(c).unwrap())
+            .collect::<Vec<_>>();
+        let range = if range.len() > 1 {
+            range[0]..=range[1]
+        } else {
+            range[0]..=range[0]
+        };
+        let category = parts[1];
+        let compatible_categories = parts
+            .iter()
+            .skip(2)
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+        ranges.push(CharClass {
+            range,
+            category: category.to_string(),
+            compatible_categories,
+        });
+    }
+
+    Ok(CharClassifier { chars, ranges })
+}
+
+fn load_matrix<P>(path: P) -> Result<HashMap<(usize, usize), i16>, Box<dyn Error>>
+where
+    P: AsRef<Path>,
+{
+    let eucjp = fs::read(path)?;
+    let (utf8, _, _) = EUC_JP.decode(&eucjp);
+    let mut matrix = HashMap::new();
+    let mut lines = utf8.lines();
+    lines.next().ok_or("failed to read the first line")?;
+    for line in lines {
+        let parts = line.split_ascii_whitespace().collect::<Vec<_>>();
+        let left = parts[0].parse::<usize>()?;
+        let right = parts[1].parse::<usize>()?;
+        let cost = parts[2].parse::<i16>()?;
+        matrix.insert((left, right), cost);
+    }
+    Ok(matrix)
 }
 
 fn wrap_value(val: &str) -> Option<String> {
