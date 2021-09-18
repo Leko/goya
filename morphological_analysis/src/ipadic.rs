@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::ops::RangeInclusive;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::vec::Vec;
 
 const COL_SURFACE_FORM: usize = 0; // 表層形
@@ -55,12 +55,11 @@ pub struct IPADic {
 }
 impl IPADic {
     pub fn load_dir(dir: &String) -> Result<IPADic, Box<dyn Error>> {
-        let base = PathBuf::from(dir);
         let chars = load_chars(Path::new(dir).join("char.def"))?;
         let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
 
-        let csv_pattern = base.join("Filler.csv");
-        // let csv_pattern = base.join("*.csv");
+        // let csv_pattern = base.join("Filler.csv");
+        let csv_pattern = Path::new(dir).join("*.csv");
         let csv_pattern = csv_pattern
             .to_str()
             .ok_or("Failed to build a glob pattern")?;
@@ -82,6 +81,17 @@ impl IPADic {
 
     pub fn get(&self, wid: &usize) -> Option<&Word> {
         self.vocabulary.get(wid)
+    }
+
+    pub fn transition_cost(&self, left: usize, right: usize) -> Option<&i16> {
+        self.matrix.get(&(left, right))
+    }
+
+    pub fn occurrence_cost(&self, wid: &usize) -> Option<i16> {
+        match self.get(wid) {
+            Some(w) => Some(w.cost),
+            _ => None,
+        }
     }
 }
 

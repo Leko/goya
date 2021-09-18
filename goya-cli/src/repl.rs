@@ -1,6 +1,6 @@
 use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::extractor::extract;
 use morphological_analysis::ipadic::IPADic;
+use morphological_analysis::lattice::Lattice;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -16,16 +16,35 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
                     continue;
                 }
                 rl.add_history_entry(line.as_str());
-                let result = extract(&line, &da);
-                if result.tokens.is_empty() {
-                    println!("not found");
-                }
-                for t in result.tokens {
-                    if let Some(id) = t.id {
-                        if let Some(word) = dict.get(&id) {
-                            println!("{:#?}", word);
-                        }
-                    }
+                let lattice = Lattice::parse(&line, &da);
+                // lattice.as_dot(dict);
+                // println!("{}", lattice.as_dot(dict));
+
+                let words = lattice
+                    .find_best(dict)
+                    .iter()
+                    .map(|wid| dict.get(wid).unwrap())
+                    .collect::<Vec<_>>();
+                for w in words {
+                    println!(
+                        "{}\t{:?},{},{},{},{},{},{},{},{}",
+                        w.surface_form,
+                        w.lexical_category,
+                        w.lexical_subcategory1
+                            .as_ref()
+                            .unwrap_or(&String::from("*")),
+                        w.lexical_subcategory2
+                            .as_ref()
+                            .unwrap_or(&String::from("*")),
+                        w.lexical_subcategory3
+                            .as_ref()
+                            .unwrap_or(&String::from("*")),
+                        "*",
+                        w.conjugation.as_ref().unwrap_or(&String::from("*")),
+                        w.infinitive,
+                        w.ruby,
+                        w.pronounciation,
+                    );
                 }
             }
             Err(ReadlineError::Interrupted) => break,
