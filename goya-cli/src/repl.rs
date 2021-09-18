@@ -4,10 +4,12 @@ use morphological_analysis::lattice::Lattice;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+const DEFAULT_HISTORY_PATH: &str = "history.txt";
+
 pub fn start(da: DoubleArray, dict: &IPADic) {
     // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
-    if rl.load_history("history.txt").is_err() {}
+    if rl.load_history(DEFAULT_HISTORY_PATH).is_err() {}
     loop {
         let readline = rl.readline(">> ");
         match readline {
@@ -17,7 +19,6 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
                 }
                 rl.add_history_entry(line.as_str());
                 let lattice = Lattice::parse(&line, &da);
-                // lattice.as_dot(dict);
                 // println!("{}", lattice.as_dot(dict));
 
                 let words = lattice
@@ -46,6 +47,7 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
                         w.pronounciation,
                     );
                 }
+                println!("EOS");
             }
             Err(ReadlineError::Interrupted) => break,
             Err(ReadlineError::Eof) => break,
@@ -55,5 +57,5 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
             }
         }
     }
-    rl.save_history("history.txt").unwrap();
+    rl.save_history(DEFAULT_HISTORY_PATH).unwrap();
 }

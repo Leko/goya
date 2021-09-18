@@ -32,7 +32,11 @@ impl DoubleArray {
         let mut state_cache = HashMap::new();
         let mut da = DoubleArray::new();
         let mut completed = 0;
-        let total = trie.size();
+        let total = trie
+            .entires_dfs()
+            .iter()
+            .filter(|(_, n)| !n.can_stop())
+            .count();
 
         let mut chars = trie
             .entires_dfs()

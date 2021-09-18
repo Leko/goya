@@ -1,4 +1,4 @@
-use super::vocabulary::{ConjugationCategory, LexicalCategory, Word};
+use super::vocabulary::{LexicalCategory, Word};
 use encoding_rs::EUC_JP;
 use glob::glob;
 use regex::Regex;
@@ -125,10 +125,7 @@ where
         let lexical_subcategory2 = wrap_value(&row[COL_LEXICAL_SUBCATEGORY2]);
         let lexical_subcategory3 = wrap_value(&row[COL_LEXICAL_SUBCATEGORY3]);
         let conjugation = wrap_value(&row[COL_CONJUGATION]);
-        let conjugation_category = match wrap_value(&row[COL_CONJUGATION_CATEGORY]) {
-            None => None,
-            _ => Some(ConjugationCategory::A),
-        };
+        let conjugation_category = wrap_value(&row[COL_CONJUGATION_CATEGORY]);
         words.push(Word::new(
             row[COL_SURFACE_FORM].to_string(),
             row[COL_LEFT_CONTEXT_ID].parse::<usize>().unwrap(),

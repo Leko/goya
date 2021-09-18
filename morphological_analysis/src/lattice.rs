@@ -19,14 +19,6 @@ impl LatticeNode {
 }
 
 #[derive(Debug)]
-pub struct Token {
-    // word ID
-    pub id: Option<usize>,
-    pub start: usize,
-    pub len: usize,
-}
-
-#[derive(Debug)]
 pub struct Lattice {
     indices: Vec<LatticeNode>,
 }
@@ -131,7 +123,6 @@ impl Lattice {
         dot
     }
 
-    // Viterbi algorithm that is kind of DP
     pub fn find_best(&self, dict: &IPADic) -> Vec<usize> {
         let dp = self.get_dp_table(dict);
         let mut path = vec![];
