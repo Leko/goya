@@ -1,5 +1,5 @@
 [package]
-name = "goya-cli"
+name = "goya"
 version = "0.1.0"
 edition = "2018"
 
@@ -13,3 +13,5 @@ itertools = "0.10"
 bincode = "1.3"
 indicatif = "0.16"
 console = "0.14"
+clap = "3.0.0-beta.4"
+dirs = "4.0"

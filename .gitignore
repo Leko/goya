@@ -10,6 +10,3 @@ Cargo.lock
 **/*.rs.bk
 .vscode/
 history.txt
-
-da.bin
-ipadic.bin
