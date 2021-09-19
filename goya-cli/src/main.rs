@@ -49,7 +49,7 @@ fn main() {
             let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
             let ipadic: IPADic = bincode::deserialize(&encoded[..]).unwrap();
 
-            repl::start(da, &ipadic)
+            repl::start(&da, &ipadic)
         }
     }
 }

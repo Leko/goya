@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use std::iter::FromIterator;
 use std::ops::RangeInclusive;
 use std::path::Path;
 use std::vec::Vec;
@@ -15,22 +14,29 @@ const COL_SURFACE_FORM: usize = 0; // 表層形
 const COL_LEFT_CONTEXT_ID: usize = 1; // 左文脈ID
 const COL_RIGHT_CONTEXT_ID: usize = 2; // 右文脈ID
 const COL_COST: usize = 3; // コスト
+const CLASS_DEFAULT: &str = "DEFAULT";
+
+#[derive(Debug)]
+pub enum WordIdentifier {
+    Known(usize),
+    Unknown(usize),
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-enum OperationTiming {
-    OnlyUnknown,
+pub enum InvokeTiming {
+    Fallback,
     Always,
 }
 #[derive(Debug, Serialize, Deserialize)]
-struct CharDefinition {
-    timing: OperationTiming,
-    group_by_same_kind: bool,
-    len: usize,
+pub struct CharDefinition {
+    pub timing: InvokeTiming,
+    pub group_by_same_kind: bool,
+    pub len: usize,
 }
 #[derive(Debug, Serialize, Deserialize)]
 struct CharClass {
     range: RangeInclusive<char>,
-    category: String,
+    class: String,
     compatible_categories: Vec<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,13 +48,16 @@ struct CharClassifier {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IPADic {
     pub vocabulary: HashMap<usize, Word>,
-    chars: CharClassifier,
+    classes: CharClassifier,
     matrix: HashMap<(usize, usize), i16>,
-    unknown: HashMap<String, Word>,
+    /// 1つのカテゴリに複数の素性を定義してもかまいません. 学習後, 適切なコスト値が 自動的に与えられます.
+    /// https://taku910.github.io/mecab/learn.html#config
+    unknown_classes: HashMap<String, Vec<usize>>,
+    unknown_vocabulary: HashMap<usize, Word>,
 }
 impl IPADic {
     pub fn from_dir(dir: &String) -> Result<IPADic, Box<dyn Error>> {
-        let chars = load_chars(Path::new(dir).join("char.def"))?;
+        let classes = load_chars(Path::new(dir).join("char.def"))?;
         let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
         let unknown = load_unknown(Path::new(dir).join("unk.def"))?;
         let csv_pattern = Path::new(dir).join("*.csv");
@@ -57,21 +66,56 @@ impl IPADic {
         let mut vocabulary = HashMap::new();
         let mut id = 1;
         for path in glob(csv_pattern)? {
-            for w in load_csv(path?)? {
-                vocabulary.insert(id, w);
+            for word in load_csv(path?)? {
+                vocabulary.insert(id, word);
+                id += 1;
+            }
+        }
+
+        let mut unknown_vocabulary = HashMap::new();
+        let mut unknown_classes = HashMap::new();
+        let mut id = 1;
+        for (class, words) in unknown.into_iter() {
+            for word in words {
+                unknown_vocabulary.insert(id, word);
+                unknown_classes
+                    .entry(class.to_string())
+                    .or_insert(vec![])
+                    .push(id);
                 id += 1;
             }
         }
         Ok(IPADic {
             vocabulary,
-            chars,
+            classes,
             matrix,
-            unknown,
+            unknown_vocabulary,
+            unknown_classes,
         })
     }
 
-    pub fn get(&self, wid: &usize) -> Option<&Word> {
+    pub fn get_word(&self, wid: &WordIdentifier) -> Option<&Word> {
+        match wid {
+            WordIdentifier::Known(wid) => self.get_known_word(wid),
+            WordIdentifier::Unknown(wid) => self.get_unknown_word(wid),
+        }
+    }
+
+    pub fn get_known_word(&self, wid: &usize) -> Option<&Word> {
         self.vocabulary.get(wid)
+    }
+
+    pub fn get_unknown_word(&self, wid: &usize) -> Option<&Word> {
+        self.unknown_vocabulary.get(wid)
+    }
+
+    pub fn get_unknown_words_by_class(&self, class: &String) -> Vec<(usize, &Word)> {
+        self.unknown_classes
+            .get(class)
+            .unwrap()
+            .iter()
+            .map(|wid| (*wid, self.unknown_vocabulary.get(wid).unwrap()))
+            .collect::<Vec<_>>()
     }
 
     pub fn transition_cost(&self, left: usize, right: usize) -> Option<&i16> {
@@ -79,10 +123,23 @@ impl IPADic {
     }
 
     pub fn occurrence_cost(&self, wid: &usize) -> Option<i16> {
-        match self.get(wid) {
+        match self.get_known_word(wid) {
             Some(w) => Some(w.cost),
             _ => None,
         }
+    }
+
+    pub fn get_char_class(&self, c: char) -> &str {
+        for class in self.classes.ranges.iter() {
+            if class.range.contains(&c) {
+                return &class.class;
+            }
+        }
+        CLASS_DEFAULT
+    }
+
+    pub fn get_char_def(&self, class: &str) -> &CharDefinition {
+        self.classes.chars.get(class).unwrap()
     }
 }
 
@@ -131,9 +188,9 @@ where
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         let kind = parts[0].to_owned();
         let timing = if parts[1] == "0" {
-            OperationTiming::OnlyUnknown
+            InvokeTiming::Fallback
         } else {
-            OperationTiming::Always
+            InvokeTiming::Always
         };
         let group_by_same_kind = parts[2] == "1";
         let len = parts[3].parse::<usize>()?;
@@ -164,7 +221,7 @@ where
         } else {
             range[0]..=range[0]
         };
-        let category = parts[1];
+        let class = parts[1];
         let compatible_categories = parts
             .iter()
             .skip(2)
@@ -172,7 +229,7 @@ where
             .collect::<Vec<_>>();
         ranges.push(CharClass {
             range,
-            category: category.to_string(),
+            class: class.to_string(),
             compatible_categories,
         });
     }
@@ -199,12 +256,16 @@ where
     Ok(matrix)
 }
 
-fn load_unknown<P>(path: P) -> Result<HashMap<String, Word>, Box<dyn Error>>
+fn load_unknown<P>(path: P) -> Result<HashMap<String, Vec<Word>>, Box<dyn Error>>
 where
     P: AsRef<Path>,
 {
     let words = load_csv(path)?;
-    Ok(HashMap::<String, Word>::from_iter(
-        words.into_iter().map(|w| (w.surface_form.to_string(), w)),
-    ))
+    let mut map = HashMap::<String, Vec<Word>>::new();
+    for w in words.into_iter() {
+        map.entry(w.surface_form.to_string())
+            .or_insert(vec![])
+            .push(w);
+    }
+    Ok(map)
 }
