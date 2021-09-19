@@ -4,12 +4,9 @@ use morphological_analysis::lattice::Lattice;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-const DEFAULT_HISTORY_PATH: &str = "history.txt";
-
 pub fn start(da: DoubleArray, dict: &IPADic) {
     // `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
-    if rl.load_history(DEFAULT_HISTORY_PATH).is_err() {}
     loop {
         let readline = rl.readline(">> ");
         match readline {
@@ -57,5 +54,4 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
             }
         }
     }
-    rl.save_history(DEFAULT_HISTORY_PATH).unwrap();
 }
