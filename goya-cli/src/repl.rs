@@ -24,25 +24,7 @@ pub fn start(da: DoubleArray, dict: &IPADic) {
                     .map(|wid| dict.get(wid).unwrap())
                     .collect::<Vec<_>>();
                 for w in words {
-                    println!(
-                        "{}\t{:?},{},{},{},{},{},{},{},{}",
-                        w.surface_form,
-                        w.lexical_category,
-                        w.lexical_subcategory1
-                            .as_ref()
-                            .unwrap_or(&String::from("*")),
-                        w.lexical_subcategory2
-                            .as_ref()
-                            .unwrap_or(&String::from("*")),
-                        w.lexical_subcategory3
-                            .as_ref()
-                            .unwrap_or(&String::from("*")),
-                        "*",
-                        w.conjugation.as_ref().unwrap_or(&String::from("*")),
-                        w.infinitive,
-                        w.ruby,
-                        w.pronounciation,
-                    );
+                    println!("{}\t{}", w.surface_form, w.meta.join(","));
                 }
                 println!("EOS");
             }

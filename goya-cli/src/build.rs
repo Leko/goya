@@ -22,7 +22,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         style("[1/4]").bold().dim(),
         LOOKING_GLASS
     );
-    let ipadic = IPADic::load_dir(src_dir)?;
+    let ipadic = IPADic::from_dir(src_dir)?;
 
     println!(
         "{} {} Analyzing vocabulary...",
