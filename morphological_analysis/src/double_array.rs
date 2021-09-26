@@ -1,4 +1,4 @@
-use super::trie_tree::TrieTree;
+use super::common_prefix_tree::CommonPrefixTree;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ impl DoubleArray {
         DoubleArray { base, check, codes }
     }
 
-    pub fn from_trie(trie: &TrieTree, f: impl Fn((usize, usize))) -> DoubleArray {
+    pub fn from_trie(trie: &CommonPrefixTree, f: impl Fn((usize, usize))) -> DoubleArray {
         let mut state_cache = HashMap::new();
         let mut da = DoubleArray::new();
         let mut completed = 0;
@@ -161,7 +161,7 @@ impl DoubleArray {
         self.check[index] = value;
     }
 
-    fn find_s(&self, _s: usize, children: &HashMap<char, TrieTree>) -> i32 {
+    fn find_s(&self, _s: usize, children: &HashMap<char, CommonPrefixTree>) -> i32 {
         let mut position = INDEX_ROOT + 1;
         let min_code = children
             .keys()
@@ -204,7 +204,7 @@ mod tests {
         chars.insert('\0');
         chars.insert('あ');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
 
@@ -219,7 +219,7 @@ mod tests {
         chars.insert('\0');
         chars.insert('あ');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "ああ");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
 
@@ -235,7 +235,7 @@ mod tests {
         chars.insert('あ');
         chars.insert('い');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
         trie.append(2, "い");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
@@ -253,7 +253,7 @@ mod tests {
         chars.insert('い');
         chars.insert('う');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あい");
         trie.append(2, "あう");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
@@ -271,7 +271,7 @@ mod tests {
         chars.insert('い');
         chars.insert('う');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あい");
         trie.append(2, "いう");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
@@ -289,7 +289,7 @@ mod tests {
         chars.insert('ん');
         chars.insert('と');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "うんと");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
 
@@ -305,7 +305,7 @@ mod tests {
         chars.insert('あ');
         chars.insert('ー');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
         trie.append(2, "あー");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});

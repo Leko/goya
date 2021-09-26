@@ -60,7 +60,7 @@ pub fn extract(text: &str, da: &DoubleArray) -> ExtractResult {
 
 #[cfg(test)]
 mod tests {
-    use super::super::trie_tree::TrieTree;
+    use super::super::common_prefix_tree::CommonPrefixTree;
     use super::*;
     use indexmap::IndexSet;
 
@@ -290,7 +290,7 @@ mod tests {
         chars.insert('と');
         chars.insert('え');
 
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "うんと");
         trie.append(2, "ええと");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_a_and_bc() {
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "a");
         trie.append(2, "bc");
         let da = DoubleArray::from_trie(&trie, |(_, _)| {});

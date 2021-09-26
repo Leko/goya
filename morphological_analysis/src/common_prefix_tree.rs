@@ -2,14 +2,14 @@ use itertools::Itertools;
 use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct TrieTree {
+pub struct CommonPrefixTree {
     pub id: Option<usize>,
-    pub children: HashMap<char, TrieTree>,
+    pub children: HashMap<char, CommonPrefixTree>,
 }
 
-impl TrieTree {
-    pub fn new() -> TrieTree {
-        TrieTree {
+impl CommonPrefixTree {
+    pub fn new() -> CommonPrefixTree {
+        CommonPrefixTree {
             id: None,
             children: HashMap::new(),
         }
@@ -35,11 +35,11 @@ impl TrieTree {
         TrieTreeVisitor { open }
     }
 
-    pub fn entires_dfs(&self) -> VecDeque<(String, &TrieTree)> {
+    pub fn entires_dfs(&self) -> VecDeque<(String, &CommonPrefixTree)> {
         self.dfs_collect(&String::new())
     }
 
-    fn dfs_collect(&self, prefix: &String) -> VecDeque<(String, &TrieTree)> {
+    fn dfs_collect(&self, prefix: &String) -> VecDeque<(String, &CommonPrefixTree)> {
         let mut open = VecDeque::new();
         open.push_back((prefix.to_string(), self));
         for c in self.children.keys().sorted() {
@@ -54,7 +54,7 @@ impl TrieTree {
     fn append_chars(&mut self, id: usize, text: &str, cursor: usize) {
         let c = text.chars().nth(cursor).unwrap();
         if let None = self.children.get(&c) {
-            self.children.insert(c, TrieTree::new());
+            self.children.insert(c, CommonPrefixTree::new());
         }
         let child = self.children.get_mut(&c).unwrap();
         if cursor + 1 == text.chars().count() {
@@ -66,10 +66,10 @@ impl TrieTree {
 }
 
 pub struct TrieTreeVisitor<'a> {
-    open: VecDeque<(String, &'a TrieTree)>,
+    open: VecDeque<(String, &'a CommonPrefixTree)>,
 }
 impl<'a> Iterator for TrieTreeVisitor<'a> {
-    type Item = (String, &'a TrieTree);
+    type Item = (String, &'a CommonPrefixTree);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.open.pop_front() {
@@ -89,11 +89,11 @@ impl<'a> Iterator for TrieTreeVisitor<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::TrieTree;
+    use super::CommonPrefixTree;
 
     #[test]
     fn builds_a_word_that_has_1_char() {
-        let mut trie = TrieTree::new();
+        let mut trie = CommonPrefixTree::new();
         trie.append(1, "あい");
         trie.append(2, "いう");
         assert_eq!(
