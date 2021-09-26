@@ -1,9 +1,9 @@
 use super::path_util::PathUtil;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
+use morphological_analysis::common_prefix_tree::CommonPrefixTree;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
-use morphological_analysis::trie_tree::TrieTree;
 use std::error::Error;
 use std::fs;
 use std::time::Instant;
@@ -29,7 +29,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         style("[2/4]").bold().dim(),
         PAPER
     );
-    let mut trie = TrieTree::new();
+    let mut trie = CommonPrefixTree::new();
     for (id, word) in &ipadic.vocabulary {
         trie.append(*id, &word.surface_form);
     }

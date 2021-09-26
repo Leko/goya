@@ -50,22 +50,22 @@ impl DartsBuilder {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::super::ipadic::IPADic;
-    use super::*;
-    use std::env;
-    use std::path::PathBuf;
+// #[cfg(test)]
+// mod tests {
+//     use super::super::ipadic::IPADic;
+//     use super::*;
+//     use std::env;
+//     use std::path::PathBuf;
 
-    #[test]
-    fn build_ipadic() {
-        let dic_dir = PathBuf::from(env::current_dir().unwrap())
-            .join("..")
-            .join("mecab")
-            .join("mecab-ipadic");
-        let ipadic = IPADic::from_dir(&dic_dir.to_str().unwrap().to_string()).unwrap();
-        let builder = DartsBuilder::new();
-        builder.build(&ipadic.vocabulary);
-        panic!("hoge");
-    }
-}
+//     #[test]
+//     fn build_ipadic() {
+//         let dic_dir = PathBuf::from(env::current_dir().unwrap())
+//             .join("..")
+//             .join("mecab")
+//             .join("mecab-ipadic");
+//         let ipadic = IPADic::from_dir(&dic_dir.to_str().unwrap().to_string()).unwrap();
+//         let builder = DartsBuilder::new();
+//         builder.build(&ipadic.vocabulary);
+//         panic!("hoge");
+//     }
+// }
