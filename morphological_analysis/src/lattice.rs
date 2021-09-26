@@ -31,46 +31,21 @@ impl Lattice {
             //     }
             // }
 
-            println!("試={:?}", da.get_code(&'試'));
-            println!(
-                "da.base[1]={}, base[{}+{}]={:?}, check[452282]={:?}",
-                da.base[1],
-                da.base[1],
-                da.get_code(&'試').unwrap() as i32,
-                da.base.get(da.get_code(&'試').unwrap()),
-                da.check.get(452282),
-            );
-            println!("transition(1 -> '試') = {:?}", da.transition(1, '試'));
-            println!("transition(4283 -> '\0') = {:?}", da.transition(4283, '\0'));
-            println!("stop(4283) = {:?}", da.stop(4283));
             match da.transition(INDEX_ROOT, c) {
                 Ok((mut cursor, _)) => {
                     if let Ok((_, Some(wid))) = da.transition(cursor as usize, '\0') {
                         open_indices.push_back(index + 1);
                         indices[index].push((WordIdentifier::Known(wid), 1));
-                        println!(
-                            "1 cursor={}, index={}, wid={} ({})",
-                            cursor,
-                            index,
-                            wid,
-                            dict.get_known_word(&wid).unwrap().surface_form
-                        );
                     }
                     let mut j = index + 1;
                     while j < len {
                         let c = text.chars().nth(j).unwrap();
                         match da.transition(cursor as usize, c) {
                             Ok((next, _)) => {
-                                if let Ok(wid) = da.stop(next as usize) {
+                                if let Ok((_, Some(wid))) = da.transition(next as usize, '\0') {
                                     open_indices.push_back(j + 1 - index);
                                     indices[index]
                                         .push((WordIdentifier::Known(wid), j + 1 - index));
-                                    println!(
-                                        "2 index={}, wid={} ({})",
-                                        index,
-                                        wid,
-                                        dict.get_known_word(&wid).unwrap().surface_form
-                                    );
                                 }
                                 cursor = next;
                             }
@@ -111,16 +86,6 @@ impl Lattice {
                     dp[i + 1][j].0,
                     left.cost,
                 ));
-                if i + wlen >= len {
-                    let cost = dict
-                        .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
-                        .unwrap();
-                    dot.push_str(&format!(
-                        "  \"{}_{}\" -> EOS [label=\"({})\"];\n",
-                        i, j, cost
-                    ));
-                    continue;
-                }
                 if i == 0 {
                     let right = left;
                     let cost = dict
@@ -130,6 +95,16 @@ impl Lattice {
                         "  BOS -> \"{}_{}\" [label=\"({})\"];\n",
                         i, j, cost
                     ));
+                }
+                if i + wlen >= len {
+                    let cost = dict
+                        .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
+                        .unwrap();
+                    dot.push_str(&format!(
+                        "  \"{}_{}\" -> EOS [label=\"({})\"];\n",
+                        i, j, cost
+                    ));
+                    continue;
                 }
                 for (k, (right_wid, _)) in self.indices[i + wlen].iter().enumerate() {
                     let right = dict.get_word(right_wid).unwrap();
@@ -151,24 +126,28 @@ impl Lattice {
         dot
     }
 
-    pub fn find_best(&self, dict: &IPADic) -> Vec<WordIdentifier> {
+    pub fn find_best(&self, dict: &IPADic) -> Option<Vec<WordIdentifier>> {
         let dp = self.get_dp_table(dict);
         let mut path = vec![];
         let mut cursor = (dp.len() - 1, 0);
         loop {
-            let (_, i, j) = dp[cursor.0][cursor.1];
-            if i == NODE_BOS {
-                break;
+            match dp[cursor.0].get(cursor.1) {
+                Some((_, i, j)) => {
+                    if *i == NODE_BOS {
+                        break;
+                    }
+                    // FIXME: Replace it with Copy trait
+                    let id = match self.indices[i - 1][*j].0 {
+                        WordIdentifier::Known(wid) => WordIdentifier::Known(wid),
+                        WordIdentifier::Unknown(wid) => WordIdentifier::Unknown(wid),
+                    };
+                    path.insert(0, id);
+                    cursor = (*i, *j);
+                }
+                _ => return None,
             }
-            // FIXME: Replace it with Copy trait
-            let id = match self.indices[i - 1][j].0 {
-                WordIdentifier::Known(wid) => WordIdentifier::Known(wid),
-                WordIdentifier::Unknown(wid) => WordIdentifier::Unknown(wid),
-            };
-            path.insert(0, id);
-            cursor = (i, j);
         }
-        path
+        Some(path)
     }
 
     fn get_dp_table(&self, dict: &IPADic) -> Vec<Vec<(i32, usize, usize)>> {
@@ -181,6 +160,9 @@ impl Lattice {
         // Currently each element has unused indices to reduce num alloc
         let mut dp: Vec<Vec<(i32, usize, usize)>> =
             vec![vec![(i32::MAX, 0, 0); max_num_childs]; len + 2];
+        if max_num_childs == 0 {
+            return dp;
+        }
         dp[0][0] = (0, 0, 0);
 
         for (i, (right_wid, _)) in self.indices[0].iter().enumerate() {
