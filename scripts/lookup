@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+cat mecab/mecab-ipadic/*.csv | iconv -f eucjp | grep "^$1"
