@@ -29,9 +29,9 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         style("[2/4]").bold().dim(),
         PAPER
     );
-    let mut trie = CommonPrefixTree::new();
+    let mut cpt = CommonPrefixTree::new();
     for (id, word) in &ipadic.vocabulary {
-        trie.append(*id, &word.surface_form);
+        cpt.append(*id, &word.surface_form);
     }
 
     println!(
@@ -45,7 +45,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
             .template("{spinner:.green} [{elapsed_precise}] [{wide_bar}] {pos:>7}/{len:7} ({eta})")
             .progress_chars("#>-"),
     );
-    let da = DoubleArray::from_trie(&trie, |(completed, total)| {
+    let da = DoubleArray::from_cpt(&cpt, |(completed, total)| {
         pb.set_length(total as u64);
         pb.set_position(completed as u64);
     });

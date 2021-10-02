@@ -43,7 +43,7 @@ impl DoubleArray {
         }
     }
 
-    pub fn from_trie(trie: &CommonPrefixTree, f: impl Fn((usize, usize))) -> DoubleArray {
+    pub fn from_cpt(trie: &CommonPrefixTree, f: impl Fn((usize, usize))) -> DoubleArray {
         let mut state_cache = HashMap::new();
         let mut da = DoubleArray::new();
         let mut completed = 0;
@@ -52,7 +52,6 @@ impl DoubleArray {
             .iter()
             .filter(|(_, n)| !n.can_stop())
             .count();
-
         let mut chars = trie
             .entires_dfs()
             .iter()
@@ -215,7 +214,7 @@ mod tests {
 
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, -1]);
@@ -230,7 +229,7 @@ mod tests {
 
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "ああ");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 2, -1]);
@@ -247,7 +246,7 @@ mod tests {
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
         trie.append(2, "い");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, -1, -2]);
@@ -265,7 +264,7 @@ mod tests {
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "あい");
         trie.append(2, "あう");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 1, -1, -2]);
@@ -283,7 +282,7 @@ mod tests {
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "あい");
         trie.append(2, "いう");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 2, 2, -1, -2]);
@@ -300,7 +299,7 @@ mod tests {
 
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "うんと");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 0, 2, -1]);
@@ -317,7 +316,7 @@ mod tests {
         let mut trie = CommonPrefixTree::new();
         trie.append(1, "あ");
         trie.append(2, "あー");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 3, -1, 0, -2]);
@@ -337,7 +336,7 @@ mod tests {
         trie.append(8, "abcd");
         trie.append(9, "abcde");
         trie.append(10, "abcdef");
-        let da = DoubleArray::from_trie(&trie, |(_, _)| {});
+        let da = DoubleArray::from_cpt(&trie, |(_, _)| {});
 
         assert_eq!(da.get_exact("a"), Some(1));
         assert_eq!(da.get_exact("aa"), Some(2));
