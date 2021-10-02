@@ -42,7 +42,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
     let pb = ProgressBar::new(ipadic.vocabulary.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar}] {pos:>7}/{len:7} ({eta})")
+            .template("[{elapsed_precise}] [{wide_bar}] {pos:>6}/{len:6} ({eta})")
             .progress_chars("#>-"),
     );
     let da = DoubleArray::from_cpt(&cpt, |(completed, total)| {

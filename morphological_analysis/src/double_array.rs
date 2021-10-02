@@ -87,7 +87,7 @@ impl DoubleArray {
             let s = *state_cache
                 .get(&prefix)
                 .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
-            da.insert_to_base(s, da.find_s(s, &node.children));
+            da.insert_to_base(s, da.find_s(s, &node));
             for next_c in node.children.keys().sorted() {
                 let child = node.children.get(next_c).unwrap();
                 let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
@@ -169,21 +169,26 @@ impl DoubleArray {
         self.check[index] = value;
     }
 
-    fn find_s(&self, _s: usize, children: &HashMap<char, CommonPrefixTree>) -> i32 {
-        let mut position = INDEX_ROOT + 1;
-        let min_code = children
-            .keys()
-            .map(|c| self.get_code(c).unwrap())
-            .min()
-            .unwrap();
-        let offsets: Vec<_> = children
+    fn get_check_available_index(&self) -> usize {
+        for i in (INDEX_ROOT + 1)..self.check.len() {
+            if *self.check.get(i).unwrap_or(&0) == 0 {
+                return i;
+            }
+        }
+        panic!("unexpected")
+    }
+
+    fn find_s(&self, _s: usize, child: &CommonPrefixTree) -> i32 {
+        let mut position = self.get_check_available_index();
+        let min_code = self.get_code(child.min_char().unwrap()).unwrap();
+        let offsets: Vec<_> = child
+            .children
             .keys()
             .map(|c| self.get_code(c).unwrap() - min_code)
             .collect();
         while !offsets
             .iter()
-            .map(|code| *self.check.get(position + code).unwrap_or(&0))
-            .all(|n| n == 0)
+            .all(|code| *self.check.get(position + code).unwrap_or(&0) == 0)
         {
             position += 1;
         }

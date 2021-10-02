@@ -23,6 +23,10 @@ impl CommonPrefixTree {
         self.entries().count()
     }
 
+    pub fn min_char(&self) -> Option<&char> {
+        self.children.keys().min()
+    }
+
     pub fn append(&mut self, id: usize, word: &str) {
         let mut token = String::from(word);
         token.push('\0');
