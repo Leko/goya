@@ -1,5 +1,6 @@
-use super::double_array::{DoubleArray, INDEX_ROOT};
+use super::double_array::DoubleArray;
 use super::ipadic::{IPADic, InvokeTiming, WordIdentifier};
+use log::trace;
 use std::collections::{HashSet, VecDeque};
 
 const BOS_CONTEXT_ID: usize = 0;
@@ -9,6 +10,7 @@ const NODE_BOS: usize = 0;
 #[derive(Debug)]
 pub struct Lattice {
     indices: Vec<Vec<(WordIdentifier, usize)>>,
+    dp: Vec<Vec<(i32, usize, usize)>>,
 }
 impl Lattice {
     pub fn parse(text: &str, da: &DoubleArray, dict: &IPADic) -> Lattice {
@@ -31,43 +33,70 @@ impl Lattice {
             //     }
             // }
 
-            match da.transition(INDEX_ROOT, c) {
+            trace!("TRY INIT: {:?}({})", c, index);
+            match da.init(c) {
                 Ok((mut cursor, _)) => {
-                    if let Ok((_, Some(wid))) = da.transition(cursor as usize, '\0') {
-                        open_indices.push_back(index + 1);
-                        indices[index].push((WordIdentifier::Known(wid), 1));
+                    trace!("  OK: cursor={}", cursor);
+                    trace!("  TRY STOP");
+                    match da.stop(cursor as usize) {
+                        Ok(wid) => {
+                            trace!("    OK: wid={}", wid);
+                            open_indices.push_back(index + 1);
+                            indices[index].push((WordIdentifier::Known(wid), 1));
+                        }
+                        Err(reason) => {
+                            trace!("    ERR: {}", reason);
+                        }
                     }
                     let mut j = index + 1;
+                    trace!("    START LOOP: j={}, len={}", j, len);
                     while j < len {
                         let c = text.chars().nth(j).unwrap();
+                        trace!("      TRANSITION: j={}, len={}, c={:?}", j, len, c);
                         match da.transition(cursor as usize, c) {
                             Ok((next, _)) => {
-                                if let Ok((_, Some(wid))) = da.transition(next as usize, '\0') {
-                                    open_indices.push_back(j + 1 - index);
-                                    indices[index]
-                                        .push((WordIdentifier::Known(wid), j + 1 - index));
+                                trace!(
+                                    "        OK: cursor={}, next={}, stop={:?}",
+                                    cursor,
+                                    next,
+                                    da.stop(next as usize)
+                                );
+                                match da.stop(next as usize) {
+                                    Ok(wid) => {
+                                        trace!("        STOP: idx={}, wid={}", j + 1, wid);
+                                        open_indices.push_back(j + 1);
+                                        indices[index]
+                                            .push((WordIdentifier::Known(wid), j + 1 - index));
+                                    }
+                                    Err(reason) => {
+                                        trace!("        ERR: {}", reason);
+                                    }
                                 }
                                 cursor = next;
                             }
-                            Err(_) => {
+                            Err(reason) => {
+                                trace!("        ERR: {}", reason);
                                 break;
                             }
                         }
                         j += 1;
                     }
                 }
-                _ => {
+                Err(reason) => {
+                    trace!("  ERR: {}", reason);
                     // TODO: Handle unknown word
                 }
             }
         }
 
-        Lattice { indices }
+        Lattice {
+            dp: get_dp_table(&indices, dict),
+            indices,
+        }
     }
 
     // FIXME: This is not a concern of this struct
     pub fn as_dot(&self, dict: &IPADic) -> String {
-        let dp = self.get_dp_table(dict);
         let len = self.indices.len();
         let mut dot = String::from("");
         dot.push_str("digraph lattice {\n");
@@ -83,7 +112,7 @@ impl Lattice {
                     i,
                     j,
                     left.surface_form,
-                    dp[i + 1][j].0,
+                    self.dp[i + 1][j].0,
                     left.cost,
                 ));
                 if i == 0 {
@@ -126,22 +155,16 @@ impl Lattice {
         dot
     }
 
-    pub fn find_best(&self, dict: &IPADic) -> Option<Vec<WordIdentifier>> {
-        let dp = self.get_dp_table(dict);
+    fn find_best_path(&self) -> Option<Vec<(usize, usize)>> {
         let mut path = vec![];
-        let mut cursor = (dp.len() - 1, 0);
+        let mut cursor = (self.dp.len() - 1, 0);
         loop {
-            match dp[cursor.0].get(cursor.1) {
+            match self.dp[cursor.0].get(cursor.1) {
                 Some((_, i, j)) => {
                     if *i == NODE_BOS {
                         break;
                     }
-                    // FIXME: Replace it with Copy trait
-                    let id = match self.indices[i - 1][*j].0 {
-                        WordIdentifier::Known(wid) => WordIdentifier::Known(wid),
-                        WordIdentifier::Unknown(wid) => WordIdentifier::Unknown(wid),
-                    };
-                    path.insert(0, id);
+                    path.insert(0, (*i, *j));
                     cursor = (*i, *j);
                 }
                 _ => return None,
@@ -150,60 +173,81 @@ impl Lattice {
         Some(path)
     }
 
-    fn get_dp_table(&self, dict: &IPADic) -> Vec<Vec<(i32, usize, usize)>> {
-        let len = self.indices.len();
-        let max_num_childs = self.indices.iter().map(|idx| idx.len()).max().unwrap();
-        // (min cost, idx of indices, idx2 of indices[idx])
-        // * dp[0][0] means BOS
-        // * dp[dp.len() - 1][0] means EOS
-        // Individual cost should be less in i16, the sum of costs can exceed its range.
-        // Currently each element has unused indices to reduce num alloc
-        let mut dp: Vec<Vec<(i32, usize, usize)>> =
-            vec![vec![(i32::MAX, 0, 0); max_num_childs]; len + 2];
-        if max_num_childs == 0 {
-            return dp;
-        }
-        dp[0][0] = (0, 0, 0);
-
-        for (i, (right_wid, _)) in self.indices[0].iter().enumerate() {
-            let right = dict.get_word(right_wid).unwrap();
-            let cost = dict
-                .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
-                .unwrap()
-                + right.cost;
-            dp[1][i] = (cost as i32, NODE_BOS, 0);
-        }
-
-        for (i, index) in self.indices.iter().enumerate() {
-            for (j, (left_wid, wlen)) in index.iter().enumerate() {
-                let before_cost = dp[i + 1][j].0;
-                let left = dict.get_word(left_wid).unwrap();
-                if i + wlen >= len {
-                    let cost: i32 = (*dict
-                        .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
-                        .unwrap() as i32)
-                        + (left.cost as i32)
-                        + before_cost;
-                    if cost < dp[i + wlen + 1][0].0 {
-                        dp[i + wlen + 1][0] = (cost as i32, i + 1, j);
-                    }
-                    continue;
+    pub fn find_best(&self, dict: &IPADic) -> Option<Vec<WordIdentifier>> {
+        match self.find_best_path() {
+            Some(best_path) => {
+                let mut ids = vec![];
+                for (i, j) in best_path.iter() {
+                    // FIXME: Replace it with Copy trait
+                    let id = match self.indices[*i - 1][*j].0 {
+                        WordIdentifier::Known(wid) => WordIdentifier::Known(wid),
+                        WordIdentifier::Unknown(wid) => WordIdentifier::Unknown(wid),
+                    };
+                    ids.push(id)
                 }
+                Some(ids)
+            }
+            None => None,
+        }
+    }
+}
 
-                for (k, (right_wid, _)) in self.indices[i + wlen].iter().enumerate() {
-                    let right = dict.get_word(right_wid).unwrap();
-                    let cost: i32 = (*dict
-                        .transition_cost(left.left_context_id, right.right_context_id)
-                        .unwrap() as i32)
-                        + left.cost as i32
-                        + right.cost as i32
-                        + before_cost;
-                    if cost < dp[i + 1 + wlen][k].0 {
-                        dp[i + 1 + wlen][k] = (cost as i32, i + 1, j);
-                    }
+fn get_dp_table(
+    indices: &Vec<Vec<(WordIdentifier, usize)>>,
+    dict: &IPADic,
+) -> Vec<Vec<(i32, usize, usize)>> {
+    let len = indices.len();
+    let max_num_childs = indices.iter().map(|idx| idx.len()).max().unwrap();
+    // (min cost, idx of indices, idx2 of indices[idx])
+    // * dp[0][0] means BOS
+    // * dp[dp.len() - 1][0] means EOS
+    // Individual cost should be less in i16, the sum of costs can exceed its range.
+    // Currently each element has unused indices to reduce num alloc
+    let mut dp: Vec<Vec<(i32, usize, usize)>> =
+        vec![vec![(i32::MAX, 0, 0); max_num_childs]; len + 2];
+    if max_num_childs == 0 {
+        return dp;
+    }
+    dp[0][0] = (0, 0, 0);
+
+    for (i, (right_wid, _)) in indices[0].iter().enumerate() {
+        let right = dict.get_word(right_wid).unwrap();
+        let cost = dict
+            .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
+            .unwrap()
+            + right.cost;
+        dp[1][i] = (cost as i32, NODE_BOS, 0);
+    }
+
+    for (i, index) in indices.iter().enumerate() {
+        for (j, (left_wid, wlen)) in index.iter().enumerate() {
+            let before_cost = dp[i + 1][j].0;
+            let left = dict.get_word(left_wid).unwrap();
+            if i + wlen >= len {
+                let cost: i32 = (*dict
+                    .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
+                    .unwrap() as i32)
+                    + (left.cost as i32)
+                    + before_cost;
+                if cost < dp[i + wlen + 1][0].0 {
+                    dp[i + wlen + 1][0] = (cost as i32, i + 1, j);
+                }
+                continue;
+            }
+
+            for (k, (right_wid, _)) in indices[i + wlen].iter().enumerate() {
+                let right = dict.get_word(right_wid).unwrap();
+                let cost: i32 = (*dict
+                    .transition_cost(left.left_context_id, right.right_context_id)
+                    .unwrap() as i32)
+                    + left.cost as i32
+                    + right.cost as i32
+                    + before_cost;
+                if cost < dp[i + 1 + wlen][k].0 {
+                    dp[i + 1 + wlen][k] = (cost as i32, i + 1, j);
                 }
             }
         }
-        dp
     }
+    dp
 }

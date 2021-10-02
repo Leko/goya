@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::collections::HashMap;
 
-pub const INDEX_ROOT: usize = 1;
+const INDEX_ROOT: usize = 1;
+const TERM_CHAR: char = '\0';
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DoubleArray {
@@ -19,7 +20,7 @@ impl DoubleArray {
         let check: Vec<usize> = vec![0, 0];
         let mut codes: IndexSet<char> = IndexSet::new();
 
-        codes.insert('\0');
+        codes.insert(TERM_CHAR);
 
         DoubleArray { base, check, codes }
     }
@@ -128,16 +129,15 @@ impl DoubleArray {
         }
     }
 
+    pub fn init(&self, to: char) -> Result<(i32, Option<usize>), &str> {
+        self.transition(INDEX_ROOT, to)
+    }
+
     pub fn stop(&self, from: usize) -> Result<usize, &str> {
-        let s = self.base.get(from).ok_or("base[from]: out of bounds")?;
-        if *s < 0 {
-            return Ok(as_usize(&(s * -1)));
-        }
-        let next = self.base.get(as_usize(s)).ok_or("base[s]: out of bounds")?;
-        if *next < 0 {
-            Ok(as_usize(&(next * -1)))
-        } else {
-            Err("base[from] >= 0")
+        match self.transition(from, TERM_CHAR) {
+            Ok((_, Some(wid))) => Ok(wid),
+            Ok(_) => Err("Successful transition, but no wid"),
+            Err(reason) => Err(reason),
         }
     }
 
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn builds_a_word_that_has_1_char() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
 
         let mut trie = CommonPrefixTree::new();
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn builds_word_with_the_same_letter_in_succession() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
 
         let mut trie = CommonPrefixTree::new();
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn builds_two_words_that_have_1_char() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
         chars.insert('い');
 
@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn builds_common_prefixed_words() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
         chars.insert('い');
         chars.insert('う');
@@ -275,7 +275,7 @@ mod tests {
     #[test]
     fn builds_intersect_words() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
         chars.insert('い');
         chars.insert('う');
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn builds_3chars_word() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('う');
         chars.insert('ん');
         chars.insert('と');
@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn builds_ipadic2() {
         let mut chars = IndexSet::new();
-        chars.insert('\0');
+        chars.insert(TERM_CHAR);
         chars.insert('あ');
         chars.insert('ー');
 

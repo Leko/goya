@@ -3,9 +3,11 @@ mod path_util;
 mod repl;
 
 use clap::Clap;
+use env_logger::Builder;
 use morphological_analysis::ipadic::IPADic;
 use path_util::PathUtil;
 use std::fs;
+use std::io::Write;
 
 #[derive(Clap)]
 struct Opts {
@@ -29,6 +31,11 @@ struct Compile {
 }
 
 fn main() {
+    let mut log_builder = Builder::from_default_env();
+    log_builder
+        .format(|buf, record| writeln!(buf, "{} {}", record.level(), record.args()))
+        .init();
+
     let opts: Opts = Opts::parse();
     let base_dir = dirs::home_dir().unwrap().join(".goya");
     let dicdir = opts
