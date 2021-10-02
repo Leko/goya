@@ -1,5 +1,6 @@
 use super::double_array::DoubleArray;
-use super::ipadic::{IPADic, InvokeTiming, WordIdentifier};
+use super::ipadic::{IPADic, WordIdentifier};
+// use super::ipadic::{IPADic, InvokeTiming, WordIdentifier};
 use log::trace;
 use std::collections::{HashSet, VecDeque};
 
@@ -40,9 +41,15 @@ impl Lattice {
                     trace!("  TRY STOP");
                     match da.stop(cursor as usize) {
                         Ok(wid) => {
-                            trace!("    OK: wid={}", wid);
+                            trace!(
+                                "    OK: wid={}, homonyms={:?}",
+                                wid,
+                                dict.resolve_homonyms(wid)
+                            );
                             open_indices.push_back(index + 1);
-                            indices[index].push((WordIdentifier::Known(wid), 1));
+                            for wid in dict.resolve_homonyms(wid).unwrap().iter() {
+                                indices[index].push((WordIdentifier::Known(*wid), 1));
+                            }
                         }
                         Err(reason) => {
                             trace!("    ERR: {}", reason);
@@ -63,10 +70,17 @@ impl Lattice {
                                 );
                                 match da.stop(next as usize) {
                                     Ok(wid) => {
-                                        trace!("        STOP: idx={}, wid={}", j + 1, wid);
+                                        trace!(
+                                            "        STOP: idx={}, wid={}, homonyms={:?}",
+                                            j + 1,
+                                            wid,
+                                            dict.resolve_homonyms(wid)
+                                        );
                                         open_indices.push_back(j + 1);
-                                        indices[index]
-                                            .push((WordIdentifier::Known(wid), j + 1 - index));
+                                        for wid in dict.resolve_homonyms(wid).unwrap().iter() {
+                                            indices[index]
+                                                .push((WordIdentifier::Known(*wid), j + 1 - index));
+                                        }
                                     }
                                     Err(reason) => {
                                         trace!("        ERR: {}", reason);
@@ -114,10 +128,11 @@ impl Lattice {
                     _ => "",
                 };
                 dot.push_str(&format!(
-                    "  \"{}_{}\" [label=\"{}\\n{} ({})\"{}];\n",
+                    "  \"{}_{}\" [label=\"{}\\n{} ({}, {})\"{}];\n",
                     i,
                     j,
                     left.surface_form,
+                    left.pos().unwrap(),
                     self.dp[i + 1][j].0,
                     left.cost,
                     node_style,
@@ -197,7 +212,7 @@ impl Lattice {
         Some(path)
     }
 
-    pub fn find_best(&self, dict: &IPADic) -> Option<Vec<WordIdentifier>> {
+    pub fn find_best(&self) -> Option<Vec<WordIdentifier>> {
         match self.find_best_path() {
             Some(best_path) => {
                 let mut ids = vec![];

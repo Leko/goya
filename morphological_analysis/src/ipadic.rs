@@ -48,6 +48,7 @@ struct CharClassifier {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IPADic {
     pub vocabulary: HashMap<usize, Word>,
+    homonyms: HashMap<String, Vec<usize>>,
     classes: CharClassifier,
     matrix: HashMap<(usize, usize), i16>,
     /// 1つのカテゴリに複数の素性を定義してもかまいません. 学習後, 適切なコスト値が 自動的に与えられます.
@@ -64,9 +65,14 @@ impl IPADic {
         let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
 
         let mut vocabulary = HashMap::new();
+        let mut homonyms = HashMap::new();
         let mut id = 1;
         for path in glob(csv_pattern)? {
             for word in load_csv(path?)? {
+                homonyms
+                    .entry(word.surface_form.to_string())
+                    .or_insert(vec![])
+                    .push(id);
                 vocabulary.insert(id, word);
                 id += 1;
             }
@@ -87,6 +93,7 @@ impl IPADic {
         }
         Ok(IPADic {
             vocabulary,
+            homonyms,
             classes,
             matrix,
             unknown_vocabulary,
@@ -116,6 +123,13 @@ impl IPADic {
             .iter()
             .map(|wid| (*wid, self.unknown_vocabulary.get(wid).unwrap()))
             .collect::<Vec<_>>()
+    }
+
+    pub fn resolve_homonyms(&self, wid: usize) -> Option<&Vec<usize>> {
+        if let Some(word) = self.get_known_word(&wid) {
+            return Some(self.homonyms.get(&word.surface_form).unwrap());
+        }
+        None
     }
 
     pub fn transition_cost(&self, left: usize, right: usize) -> Option<&i16> {

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+const META_POS: usize = 0;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
     /// 表層形
@@ -33,5 +35,10 @@ impl Word {
             cost,
             meta,
         }
+    }
+
+    // FIXME: Depends on IPADic
+    pub fn pos(&self) -> Option<&String> {
+        self.meta.get(META_POS)
     }
 }
