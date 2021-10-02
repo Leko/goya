@@ -87,22 +87,17 @@ impl DoubleArray {
             let s = *state_cache
                 .get(&prefix)
                 .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
-            if node.children.len() == 1 && node.children.get(&'\0').is_some() {
-                let child = node.children.get(&'\0').unwrap();
-                da.insert_to_base(s, child.id.unwrap() as i32 * -1);
-            } else {
-                da.insert_to_base(s, da.find_s(s, &node.children));
-                for next_c in node.children.keys().sorted() {
-                    let child = node.children.get(next_c).unwrap();
-                    let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
-                    let t = as_usize(&t);
-                    da.insert_to_check(t, s);
-                    if child.can_stop() {
-                        da.insert_to_base(t, child.id.unwrap() as i32 * -1);
-                    } else {
-                        let key = concat_char_to_str(&prefix, *next_c);
-                        state_cache.insert(key, t);
-                    }
+            da.insert_to_base(s, da.find_s(s, &node.children));
+            for next_c in node.children.keys().sorted() {
+                let child = node.children.get(next_c).unwrap();
+                let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
+                let t = as_usize(&t);
+                da.insert_to_check(t, s);
+                if child.can_stop() {
+                    da.insert_to_base(t, child.id.unwrap() as i32 * -1);
+                } else {
+                    let key = concat_char_to_str(&prefix, *next_c);
+                    state_cache.insert(key, t);
                 }
             }
         }
