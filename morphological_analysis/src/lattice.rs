@@ -97,7 +97,9 @@ impl Lattice {
 
     // FIXME: This is not a concern of this struct
     pub fn as_dot(&self, dict: &IPADic) -> String {
+        let bold = " penwidth=3";
         let len = self.indices.len();
+        let best = self.find_best_path();
         let mut dot = String::from("");
         dot.push_str("digraph lattice {\n");
         dot.push_str("  labelloc=\"t\";\n");
@@ -107,31 +109,44 @@ impl Lattice {
         for (i, index) in self.indices.iter().enumerate() {
             for (j, (left_wid, wlen)) in index.iter().enumerate() {
                 let left = dict.get_word(left_wid).unwrap();
+                let node_style = match &best {
+                    Some(best) if best.contains(&(i + 1, j)) => bold,
+                    _ => "",
+                };
                 dot.push_str(&format!(
-                    "  \"{}_{}\" [label=\"{}\\n{} ({})\"];\n",
+                    "  \"{}_{}\" [label=\"{}\\n{} ({})\"{}];\n",
                     i,
                     j,
                     left.surface_form,
                     self.dp[i + 1][j].0,
                     left.cost,
+                    node_style,
                 ));
                 if i == 0 {
                     let right = left;
                     let cost = dict
                         .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
                         .unwrap();
+                    let bos_edge_style = match &best {
+                        Some(best) if best.contains(&(i + 1, j)) => bold,
+                        _ => "",
+                    };
                     dot.push_str(&format!(
-                        "  BOS -> \"{}_{}\" [label=\"({})\"];\n",
-                        i, j, cost
+                        "  BOS -> \"{}_{}\" [label=\"({})\"{}];\n",
+                        i, j, cost, bos_edge_style
                     ));
                 }
                 if i + wlen >= len {
                     let cost = dict
                         .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
                         .unwrap();
+                    let eos_edge_style = match &best {
+                        Some(best) if best.contains(&(i + 1, j)) => bold,
+                        _ => "",
+                    };
                     dot.push_str(&format!(
-                        "  \"{}_{}\" -> EOS [label=\"({})\"];\n",
-                        i, j, cost
+                        "  \"{}_{}\" -> EOS [label=\"({})\"{}];\n",
+                        i, j, cost, eos_edge_style
                     ));
                     continue;
                 }
@@ -140,13 +155,22 @@ impl Lattice {
                     let cost = dict
                         .transition_cost(left.left_context_id, right.right_context_id)
                         .unwrap();
+                    let edge_style = match &best {
+                        Some(best)
+                            if best.contains(&(i + 1, j)) && best.contains(&(i + wlen + 1, k)) =>
+                        {
+                            bold
+                        }
+                        _ => "",
+                    };
                     dot.push_str(&format!(
-                        "  \"{}_{}\" -> \"{}_{}\" [label=\"({})\"];\n",
+                        "  \"{}_{}\" -> \"{}_{}\" [label=\"({})\"{}];\n",
                         i,
                         j,
                         i + wlen,
                         k,
-                        cost
+                        cost,
+                        edge_style
                     ));
                 }
             }
