@@ -109,6 +109,16 @@ impl Lattice {
         }
     }
 
+    pub fn word_identifiers(&self) -> Vec<WordIdentifier> {
+        let mut wids = vec![];
+        for idx in self.indices.iter() {
+            for (wid, _) in idx.iter() {
+                wids.push(wid.clone())
+            }
+        }
+        wids
+    }
+
     // FIXME: This is not a concern of this struct
     pub fn as_dot(&self, dict: &IPADic) -> String {
         let bold = " penwidth=3";

@@ -2,8 +2,7 @@
 name = "goya"
 version = "0.1.0"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Leko <leko.noor@gmail.com>"]
 
 [dependencies]
 morphological_analysis = { path = "../morphological_analysis" }
@@ -17,3 +16,6 @@ clap = "3.0.0-beta.4"
 dirs = "4.0"
 env_logger = "0.9"
 
+rmp-serde = "0.15"
+postcard = { version = "0.7", features = ["alloc"] }
+bytesize = {version = "1.1.0", features = ["serde"]}

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 const META_POS: usize = 0;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Word {
     /// 表層形
     /// https://taku910.github.io/mecab/dic-detail.html

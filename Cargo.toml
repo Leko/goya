@@ -4,4 +4,5 @@ members = [
   "goya-cli",
   "morphological_analysis",
   "dictionary",
+  "goya-wasm",
 ]
