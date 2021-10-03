@@ -1,17 +1,17 @@
 use itertools::Itertools;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CommonPrefixTree {
     pub id: Option<usize>,
-    pub children: HashMap<char, CommonPrefixTree>,
+    pub children: BTreeMap<char, CommonPrefixTree>,
 }
 
 impl CommonPrefixTree {
     pub fn new() -> CommonPrefixTree {
         CommonPrefixTree {
             id: None,
-            children: HashMap::new(),
+            children: BTreeMap::new(),
         }
     }
 
