@@ -4,8 +4,10 @@ mod repl;
 
 use clap::Clap;
 use env_logger::Builder;
+use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
 use path_util::PathUtil;
+use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;
 use std::io::Write;
 
@@ -57,10 +59,12 @@ fn main() {
         _ => {
             let util = PathUtil::from(dicdir);
             let encoded = fs::read(util.da_path()).expect("Failed to load dictionary");
-            let da = bincode::deserialize(&encoded[..]).unwrap();
+            let archived = unsafe { archived_root::<DoubleArray>(&encoded[..]) };
+            let da = archived.deserialize(&mut Infallible).unwrap();
 
             let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
-            let ipadic: IPADic = bincode::deserialize(&encoded[..]).unwrap();
+            let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
+            let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
 
             repl::start(&da, &ipadic)
         }
