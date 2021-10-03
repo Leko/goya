@@ -1,16 +1,25 @@
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
+use rkyv::{archived_root, Deserialize, Infallible};
 use wasm_bindgen::prelude::*;
 
 #[macro_use]
 extern crate lazy_static;
 
 lazy_static! {
-    static ref DOUBLE_ARRAY: DoubleArray =
-        bincode::deserialize(include_bytes!("../__generated__/da.bin")).unwrap();
-    static ref IPADIC: IPADic =
-        bincode::deserialize(include_bytes!("../__generated__/dict.bin")).unwrap();
+    static ref DOUBLE_ARRAY: DoubleArray = {
+        let archived = unsafe { archived_root::<DoubleArray>(include_bytes!("../__generated__/da.bin")) };
+        archived.deserialize(&mut Infallible).unwrap()
+    };
+    static ref IPADIC: IPADic = {
+        let archived = unsafe { archived_root::<IPADic>(include_bytes!("../__generated__/dict.bin")) };
+        archived.deserialize(&mut Infallible).unwrap()
+    };
+    // static ref DOUBLE_ARRAY: DoubleArray =
+    //     bincode::deserialize(include_bytes!("../__generated__/da.bin")).unwrap();
+    // static ref IPADIC: IPADic =
+    //     bincode::deserialize(include_bytes!("../__generated__/dict.bin")).unwrap();
 }
 
 #[wasm_bindgen]
