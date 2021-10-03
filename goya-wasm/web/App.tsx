@@ -10,6 +10,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import { useDebounce } from "react-use";
 import * as Comlink from "comlink";
 import type { WasmLattice } from "../pkg";
+import type { Stats } from "./MorphologicalAnalysis.worker";
 import { Result } from "./Result";
 
 const proxy = Comlink.wrap(
@@ -19,7 +20,12 @@ const proxy = Comlink.wrap(
 export function App() {
   const [text, setText] = useState("すもももももももものうち");
   const [result, setResult] = useState<
-    { dot: string; best: unknown[] }[] | null
+    | {
+        dot: string;
+        best: unknown[];
+        stats: Stats;
+      }[]
+    | null
   >(null);
 
   const handleChangeText = useCallback(
@@ -34,8 +40,9 @@ export function App() {
         setResult(null);
       } else {
         const decoder = new TextDecoder();
-        proxy.parse(text).then(({ dot, best }) => {
+        proxy.parse(text).then(({ dot, best, stats }) => {
           setResult({
+            stats: JSON.parse(decoder.decode(stats)),
             dot: decoder.decode(dot),
             best: JSON.parse(decoder.decode(best)),
           });

@@ -46,6 +46,13 @@ impl WasmLattice {
 }
 
 #[wasm_bindgen]
+pub fn ready() {
+    // Access to a property to run deserialization
+    &DOUBLE_ARRAY.base;
+    &IPADIC.vocabulary;
+}
+
+#[wasm_bindgen]
 pub fn parse(text: &str) -> WasmLattice {
     let lattice = Lattice::parse(text, &DOUBLE_ARRAY, &IPADIC);
     WasmLattice {

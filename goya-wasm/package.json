@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "webpack-dev-server --mode development",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "update-dict": "./scripts/build-dict"
   },
   "author": "Leko <leko.noor@gmail.com>",
   "license": "MIT",
