@@ -1,6 +1,5 @@
 use super::path_util::PathUtil;
 use console::{style, Emoji};
-use indicatif::{ProgressBar, ProgressStyle};
 use morphological_analysis::common_prefix_tree::CommonPrefixTree;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
@@ -30,7 +29,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         PAPER
     );
     let mut cpt = CommonPrefixTree::new();
-    for (id, word) in &ipadic.vocabulary {
+    for (id, word) in ipadic.vocabulary.iter().take(100000) {
         cpt.append(*id, &word.surface_form);
     }
 
@@ -39,17 +38,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         style("[3/4]").bold().dim(),
         CLIP
     );
-    let pb = ProgressBar::new(ipadic.vocabulary.len() as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] [{wide_bar}] {pos:>6}/{len:6} ({eta})")
-            .progress_chars("#>-"),
-    );
-    let da = DoubleArray::from_cpt(&cpt, |(completed, total)| {
-        pb.set_length(total as u64);
-        pb.set_position(completed as u64);
-    });
-    pb.finish_and_clear();
+    let da = DoubleArray::from_cpt(&cpt);
 
     println!(
         "{} {} Exporting dictionary...",
