@@ -16,31 +16,31 @@ const TRUCK: Emoji = Emoji("🚚", "");
 pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> {
     PathUtil::from(dist_dir.to_string());
     let timer = Instant::now();
-    println!(
+    eprintln!(
         "{} {} Loading dictionary...",
         style("[1/4]").bold().dim(),
         LOOKING_GLASS
     );
     let ipadic = IPADic::from_dir(src_dir)?;
 
-    println!(
+    eprintln!(
         "{} {} Analyzing vocabulary...",
         style("[2/4]").bold().dim(),
         PAPER
     );
     let mut cpt = CommonPrefixTree::new();
-    for (id, word) in ipadic.vocabulary.iter().take(100000) {
+    for (id, word) in ipadic.vocabulary.iter() {
         cpt.append(*id, &word.surface_form);
     }
 
-    println!(
+    eprintln!(
         "{} {} Recompiling dictionary...",
         style("[3/4]").bold().dim(),
         CLIP
     );
     let da = DoubleArray::from_cpt(&cpt);
 
-    println!(
+    eprintln!(
         "{} {} Exporting dictionary...",
         style("[4/4]").bold().dim(),
         TRUCK
@@ -53,7 +53,7 @@ pub fn build(src_dir: &String, dist_dir: &String) -> Result<(), Box<dyn Error>> 
         .expect("Failed to write dictionary");
 
     let end = timer.elapsed();
-    println!(
+    eprintln!(
         "{} Done in {}.{:03}s",
         SPARKLE,
         end.as_secs(),

@@ -20,7 +20,7 @@ impl CommonPrefixTree {
     }
 
     pub fn size(&self) -> usize {
-        self.entries().count()
+        self.entires_dfs().len()
     }
 
     pub fn min_char(&self) -> Option<&char> {
@@ -31,12 +31,6 @@ impl CommonPrefixTree {
         let mut token = String::from(word);
         token.push('\0');
         self.append_chars(id, &token, 0);
-    }
-
-    pub fn entries(&self) -> TrieTreeVisitor {
-        let mut open = VecDeque::new();
-        open.push_back((String::new(), self));
-        TrieTreeVisitor { open }
     }
 
     pub fn entires_dfs(&self) -> VecDeque<(String, &CommonPrefixTree)> {
@@ -66,28 +60,6 @@ impl CommonPrefixTree {
             return;
         }
         child.append_chars(id, text, cursor + 1);
-    }
-}
-
-pub struct TrieTreeVisitor<'a> {
-    open: VecDeque<(String, &'a CommonPrefixTree)>,
-}
-impl<'a> Iterator for TrieTreeVisitor<'a> {
-    type Item = (String, &'a CommonPrefixTree);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.open.pop_front() {
-            Some((prefix, subtree)) => {
-                for c in subtree.children.keys().sorted() {
-                    let node = subtree.children.get(c).unwrap();
-                    let mut substr = String::from(&prefix);
-                    substr.push(*c);
-                    self.open.push_back((substr, &node));
-                }
-                Some((prefix, &subtree))
-            }
-            None => None,
-        }
     }
 }
 
