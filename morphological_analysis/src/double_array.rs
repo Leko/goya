@@ -9,6 +9,16 @@ use std::collections::HashMap;
 const INDEX_ROOT: usize = 1;
 const TERM_CHAR: char = '\0';
 
+#[derive(Debug)]
+pub enum TransitionError {
+    AlreadyTerminated,
+    BaseFailed,
+    CheckFailed,
+    UnknownChar,
+    BaseOutOfBounds,
+    CheckOutOfBounds,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DoubleArray {
     pub codes: IndexSet<char>,
@@ -101,15 +111,28 @@ impl DoubleArray {
         da
     }
 
-    pub fn transition(&self, from: usize, to: char) -> Result<(i32, Option<usize>), &str> {
-        let code = self.get_code(&to).ok_or("unknown char")?;
-        let s = self.base.get(from).ok_or("base: out of bounds")?;
+    pub fn transition(
+        &self,
+        from: usize,
+        to: char,
+    ) -> Result<(i32, Option<usize>), TransitionError> {
+        let code = self.get_code(&to).ok_or(TransitionError::UnknownChar)?;
+        let s = self
+            .base
+            .get(from)
+            .ok_or(TransitionError::BaseOutOfBounds)?;
         let t = s + code as i32;
         if t < 0 {
-            return Err("already reached the end character");
+            return Err(TransitionError::AlreadyTerminated);
         }
-        let next = self.check.get(as_usize(&t)).ok_or("check: out of bounds")?;
-        let base = self.base.get(t as usize).ok_or("failed to fetch base")?;
+        let next = self
+            .check
+            .get(as_usize(&t))
+            .ok_or(TransitionError::CheckOutOfBounds)?;
+        let base = self
+            .base
+            .get(t as usize)
+            .ok_or(TransitionError::BaseFailed)?;
         let wid = if *base < 0 {
             Some(as_usize(&(base * -1)))
         } else {
@@ -118,18 +141,18 @@ impl DoubleArray {
         if *next == from {
             Ok((t, wid))
         } else {
-            Err("failed to check")
+            Err(TransitionError::CheckFailed)
         }
     }
 
-    pub fn init(&self, to: char) -> Result<(i32, Option<usize>), &str> {
+    pub fn init(&self, to: char) -> Result<(i32, Option<usize>), TransitionError> {
         self.transition(INDEX_ROOT, to)
     }
 
-    pub fn stop(&self, from: usize) -> Result<usize, &str> {
+    pub fn stop(&self, from: usize) -> Result<usize, TransitionError> {
         match self.transition(from, TERM_CHAR) {
             Ok((_, Some(wid))) => Ok(wid),
-            Ok(_) => Err("Successful transition, but no wid"),
+            Ok(_) => unreachable!("Successful transition, but no wid"),
             Err(reason) => Err(reason),
         }
     }

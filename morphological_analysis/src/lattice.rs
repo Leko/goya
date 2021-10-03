@@ -52,7 +52,7 @@ impl Lattice {
                             }
                         }
                         Err(reason) => {
-                            trace!("    ERR: {}", reason);
+                            trace!("    ERR: {:?}", reason);
                         }
                     }
                     let mut j = index + 1;
@@ -83,13 +83,13 @@ impl Lattice {
                                         }
                                     }
                                     Err(reason) => {
-                                        trace!("        ERR: {}", reason);
+                                        trace!("        ERR: {:?}", reason);
                                     }
                                 }
                                 cursor = next;
                             }
                             Err(reason) => {
-                                trace!("        ERR: {}", reason);
+                                trace!("        ERR: {:?}", reason);
                                 break;
                             }
                         }
@@ -97,7 +97,7 @@ impl Lattice {
                     }
                 }
                 Err(reason) => {
-                    trace!("  ERR: {}", reason);
+                    trace!("  ERR: {:?}", reason);
                     // TODO: Handle unknown word
                 }
             }
