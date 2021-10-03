@@ -5,10 +5,10 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs;
 use std::ops::RangeInclusive;
 use std::path::Path;
 use std::vec::Vec;
+use std::{fs, vec};
 
 const COL_SURFACE_FORM: usize = 0; // 表層形
 const COL_LEFT_CONTEXT_ID: usize = 1; // 左文脈ID
@@ -50,7 +50,7 @@ pub struct IPADic {
     pub vocabulary: HashMap<usize, Word>,
     homonyms: HashMap<String, Vec<usize>>,
     classes: CharClassifier,
-    matrix: HashMap<(usize, usize), i16>,
+    matrix: Vec<Vec<i16>>,
     /// 1つのカテゴリに複数の素性を定義してもかまいません. 学習後, 適切なコスト値が 自動的に与えられます.
     /// https://taku910.github.io/mecab/learn.html#config
     unknown_classes: HashMap<String, Vec<usize>>,
@@ -68,7 +68,7 @@ impl IPADic {
         let mut homonyms = HashMap::new();
         let mut id = 1;
         for path in glob(csv_pattern)? {
-            for word in load_csv(path?)? {
+            for word in load_words_csv(path?)? {
                 homonyms
                     .entry(word.surface_form.to_string())
                     .or_insert(vec![])
@@ -163,7 +163,12 @@ impl IPADic {
     }
 
     pub fn transition_cost(&self, left: usize, right: usize) -> Option<&i16> {
-        self.matrix.get(&(left, right))
+        if let Some(rights) = self.matrix.get(left) {
+            if let Some(cost) = rights.get(right) {
+                return Some(cost);
+            }
+        }
+        None
     }
 
     pub fn occurrence_cost(&self, wid: &usize) -> Option<i16> {
@@ -187,7 +192,7 @@ impl IPADic {
     }
 }
 
-fn load_csv<P>(path: P) -> Result<Vec<Word>, Box<dyn Error>>
+fn load_words_csv<P>(path: P) -> Result<Vec<Word>, Box<dyn Error>>
 where
     P: AsRef<Path>,
 {
@@ -281,21 +286,26 @@ where
     Ok(CharClassifier { chars, ranges })
 }
 
-fn load_matrix<P>(path: P) -> Result<HashMap<(usize, usize), i16>, Box<dyn Error>>
+fn load_matrix<P>(path: P) -> Result<Vec<Vec<i16>>, Box<dyn Error>>
 where
     P: AsRef<Path>,
 {
     let eucjp = fs::read(path)?;
     let (utf8, _, _) = EUC_JP.decode(&eucjp);
-    let mut matrix = HashMap::new();
     let mut lines = utf8.lines();
-    lines.next().ok_or("failed to read the first line")?;
+    let size = lines
+        .next()
+        .expect("failed to read the first line")
+        .split_ascii_whitespace()
+        .map(|p| p.parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    let mut matrix = vec![vec![-1; size[1]]; size[0]];
     for line in lines {
         let parts = line.split_ascii_whitespace().collect::<Vec<_>>();
         let left = parts[0].parse::<usize>()?;
         let right = parts[1].parse::<usize>()?;
         let cost = parts[2].parse::<i16>()?;
-        matrix.insert((left, right), cost);
+        matrix[left][right] = cost;
     }
     Ok(matrix)
 }
@@ -304,7 +314,7 @@ fn load_unknown<P>(path: P) -> Result<HashMap<String, Vec<Word>>, Box<dyn Error>
 where
     P: AsRef<Path>,
 {
-    let words = load_csv(path)?;
+    let words = load_words_csv(path)?;
     let mut map = HashMap::<String, Vec<Word>>::new();
     for w in words.into_iter() {
         map.entry(w.surface_form.to_string())
