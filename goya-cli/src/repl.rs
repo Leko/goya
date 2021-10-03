@@ -18,20 +18,17 @@ pub fn start(da: &DoubleArray, dict: &IPADic) {
                 let lattice = Lattice::parse(&line, da, dict);
                 // println!("{}", lattice.as_dot(dict));
 
-                match lattice.find_best() {
-                    Some(path) => {
-                        for wid in path.into_iter() {
-                            let word = dict.get_word(&wid).unwrap();
-                            if let WordIdentifier::Unknown(_) = wid {
-                                // TODO: Display actual matched unknown text
-                                println!("{}\t{}", word.surface_form, word.meta.join(","));
-                            } else {
-                                println!("{}\t{}", word.surface_form, word.meta.join(","));
-                            }
+                if let Some(path) = lattice.find_best() {
+                    for wid in path.into_iter() {
+                        let word = dict.get_word(&wid).unwrap();
+                        if let WordIdentifier::Unknown(_) = wid {
+                            // TODO: Display actual matched unknown text
+                            println!("{}\t{}", word.surface_form, word.meta.join(","));
+                        } else {
+                            println!("{}\t{}", word.surface_form, word.meta.join(","));
                         }
-                        println!("EOS");
                     }
-                    _ => {}
+                    println!("EOS");
                 }
             }
             Err(ReadlineError::Interrupted) => break,

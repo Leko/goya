@@ -1,4 +1,5 @@
 use super::common_prefix_tree::CommonPrefixTree;
+use core::panic;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -14,8 +15,8 @@ pub struct DoubleArray {
     pub base: Vec<i32>,
     pub check: Vec<usize>,
 }
-impl DoubleArray {
-    pub fn new() -> DoubleArray {
+impl Default for DoubleArray {
+    fn default() -> Self {
         let base: Vec<i32> = vec![0, 1];
         let check: Vec<usize> = vec![0, 0];
         let mut codes: IndexSet<char> = IndexSet::new();
@@ -24,8 +25,9 @@ impl DoubleArray {
 
         DoubleArray { base, check, codes }
     }
-
-    pub fn from(base: Vec<i32>, check: Vec<usize>, codes: IndexSet<char>) -> DoubleArray {
+}
+impl DoubleArray {
+    pub fn from(base: Vec<i32>, check: Vec<usize>, codes: IndexSet<char>) -> Self {
         DoubleArray { base, check, codes }
     }
 
@@ -43,9 +45,9 @@ impl DoubleArray {
         }
     }
 
-    pub fn from_cpt(trie: &CommonPrefixTree) -> DoubleArray {
+    pub fn from_cpt(trie: &CommonPrefixTree) -> Self {
         let mut state_cache = HashMap::new();
-        let mut da = DoubleArray::new();
+        let mut da = DoubleArray::default();
         let mut chars = trie
             .entires_dfs()
             .iter()
@@ -53,7 +55,7 @@ impl DoubleArray {
             .join("")
             .chars()
             .collect::<Vec<_>>();
-        chars.sort();
+        chars.sort_unstable();
         chars.dedup();
         for c in chars {
             da.insert_to_codes(c);
@@ -66,7 +68,7 @@ impl DoubleArray {
 
             // root node
             if prefix.is_empty() {
-                for next_c in node.children.keys().sorted() {
+                for next_c in node.children.keys() {
                     let next_char_code = da.get_code(next_c).unwrap();
                     let t = da.base[INDEX_ROOT] + next_char_code as i32;
                     let t = as_usize(&t);
@@ -79,14 +81,14 @@ impl DoubleArray {
             let s = *state_cache
                 .get(&prefix)
                 .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
-            da.insert_to_base(s, da.find_next_s(&node));
-            for next_c in node.children.keys().sorted() {
+            da.insert_to_base(s, da.find_next_s(node));
+            for next_c in node.children.keys() {
                 let child = node.children.get(next_c).unwrap();
                 let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
                 let t = as_usize(&t);
                 da.insert_to_check(t, s);
                 if child.can_stop() {
-                    da.insert_to_base(t, child.id.unwrap() as i32 * -1);
+                    da.insert_to_base(t, -(child.id.unwrap() as i32));
                 } else {
                     let key = concat_char_to_str(&prefix, *next_c);
                     state_cache.insert(key, t);
@@ -133,10 +135,7 @@ impl DoubleArray {
     }
 
     pub fn get_code(&self, c: &char) -> Option<usize> {
-        match self.codes.get_full(c) {
-            Some((code, _)) => Some(code),
-            None => None,
-        }
+        self.codes.get_full(c).map(|(code, _)| code)
     }
 
     fn insert_to_codes(&mut self, c: char) -> usize {
@@ -161,17 +160,19 @@ impl DoubleArray {
         self.check[index] = value;
     }
 
-    fn get_check_available_index(&self) -> usize {
-        for i in (INDEX_ROOT + 1)..self.check.len() {
-            if *self.check.get(i).unwrap_or(&0) == 0 {
-                return i;
+    fn get_check_available_index(&self, left: usize) -> usize {
+        for i in left..self.check.len() {
+            match self.check.get(i) {
+                Some(0) => return i,
+                Some(_) => {}
+                _ => return i,
             }
         }
         unreachable!("index must be found")
     }
 
     fn find_next_s(&self, child: &CommonPrefixTree) -> i32 {
-        let mut position = self.get_check_available_index();
+        let mut position = self.get_check_available_index(INDEX_ROOT + 1);
         let min_code = self.get_code(child.min_char().unwrap()).unwrap();
         let offsets: Vec<_> = child
             .children
@@ -180,7 +181,11 @@ impl DoubleArray {
             .collect();
         while offsets
             .iter()
-            .any(|code| *self.check.get(position + code).unwrap_or(&0) != 0)
+            .any(|code| match self.check.get(position + code) {
+                Some(0) => false,
+                Some(_) => true,
+                _ => false,
+            })
         {
             position += 1;
         }
@@ -193,7 +198,7 @@ fn as_usize(n: &i32) -> usize {
     *n as usize
 }
 
-fn concat_char_to_str(text: &String, c: char) -> String {
+fn concat_char_to_str(text: &str, c: char) -> String {
     let mut tmp = String::from(text);
     tmp.push(c);
     tmp
@@ -209,7 +214,7 @@ mod tests {
         chars.insert(TERM_CHAR);
         chars.insert('あ');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あ");
         let da = DoubleArray::from_cpt(&trie);
 
@@ -224,7 +229,7 @@ mod tests {
         chars.insert(TERM_CHAR);
         chars.insert('あ');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "ああ");
         let da = DoubleArray::from_cpt(&trie);
 
@@ -240,7 +245,7 @@ mod tests {
         chars.insert('あ');
         chars.insert('い');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あ");
         trie.append(2, "い");
         let da = DoubleArray::from_cpt(&trie);
@@ -258,7 +263,7 @@ mod tests {
         chars.insert('い');
         chars.insert('う');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あい");
         trie.append(2, "あう");
         let da = DoubleArray::from_cpt(&trie);
@@ -276,7 +281,7 @@ mod tests {
         chars.insert('い');
         chars.insert('う');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あい");
         trie.append(2, "いう");
         let da = DoubleArray::from_cpt(&trie);
@@ -294,7 +299,7 @@ mod tests {
         chars.insert('ん');
         chars.insert('と');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "うんと");
         let da = DoubleArray::from_cpt(&trie);
 
@@ -310,7 +315,7 @@ mod tests {
         chars.insert('あ');
         chars.insert('ー');
 
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あ");
         trie.append(2, "あー");
         let da = DoubleArray::from_cpt(&trie);
@@ -322,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_get_exact() {
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "a");
         trie.append(2, "aa");
         trie.append(3, "aaa");

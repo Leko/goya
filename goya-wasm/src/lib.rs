@@ -27,19 +27,16 @@ impl WasmLattice {
 
     pub fn find_best(&self) -> String {
         let mut best = vec![];
-        match self.lattice.find_best() {
-            Some(path) => {
-                for wid in path.into_iter() {
-                    let word = self.ipadic.get_word(&wid).unwrap();
-                    if let WordIdentifier::Unknown(_) = wid {
-                        // TODO: Display actual matched unknown text
-                        best.push(word);
-                    } else {
-                        best.push(word);
-                    }
+        if let Some(path) = self.lattice.find_best() {
+            for wid in path.into_iter() {
+                let word = self.ipadic.get_word(&wid).unwrap();
+                if let WordIdentifier::Unknown(_) = wid {
+                    // TODO: Display actual matched unknown text
+                    best.push(word);
+                } else {
+                    best.push(word);
                 }
             }
-            _ => {}
         }
         serde_json::to_string(&best).unwrap()
     }

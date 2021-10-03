@@ -1,20 +1,12 @@
 use itertools::Itertools;
 use std::collections::{BTreeMap, VecDeque};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct CommonPrefixTree {
     pub id: Option<usize>,
     pub children: BTreeMap<char, CommonPrefixTree>,
 }
-
 impl CommonPrefixTree {
-    pub fn new() -> CommonPrefixTree {
-        CommonPrefixTree {
-            id: None,
-            children: BTreeMap::new(),
-        }
-    }
-
     pub fn can_stop(&self) -> bool {
         self.id.is_some()
     }
@@ -37,7 +29,7 @@ impl CommonPrefixTree {
         self.dfs_collect(&String::new())
     }
 
-    fn dfs_collect(&self, prefix: &String) -> VecDeque<(String, &CommonPrefixTree)> {
+    fn dfs_collect(&self, prefix: &str) -> VecDeque<(String, &CommonPrefixTree)> {
         let mut open = VecDeque::new();
         open.push_back((prefix.to_string(), self));
         for c in self.children.keys().sorted() {
@@ -51,8 +43,8 @@ impl CommonPrefixTree {
 
     fn append_chars(&mut self, id: usize, text: &str, cursor: usize) {
         let c = text.chars().nth(cursor).unwrap();
-        if let None = self.children.get(&c) {
-            self.children.insert(c, CommonPrefixTree::new());
+        if self.children.get(&c).is_none() {
+            self.children.insert(c, CommonPrefixTree::default());
         }
         let child = self.children.get_mut(&c).unwrap();
         if cursor + 1 == text.chars().count() {
@@ -69,7 +61,7 @@ mod tests {
 
     #[test]
     fn builds_a_word_that_has_1_char() {
-        let mut trie = CommonPrefixTree::new();
+        let mut trie = CommonPrefixTree::default();
         trie.append(1, "あい");
         trie.append(2, "いう");
         assert_eq!(

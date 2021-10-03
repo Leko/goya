@@ -242,7 +242,7 @@ impl Lattice {
 }
 
 fn get_dp_table(
-    indices: &Vec<Vec<(WordIdentifier, usize)>>,
+    indices: &[Vec<(WordIdentifier, usize)>],
     dict: &IPADic,
 ) -> Vec<Vec<(i32, usize, usize)>> {
     let len = indices.len();

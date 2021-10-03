@@ -41,7 +41,7 @@ fn main() {
     let base_dir = dirs::home_dir().unwrap().join(".goya");
     let dicdir = opts
         .dicdir
-        .unwrap_or(base_dir.join("dict").to_str().unwrap().to_string());
+        .unwrap_or_else(|| base_dir.join("dict").to_str().unwrap().to_string());
     match opts.subcmd {
         Some(SubCommand::Compile(c)) => match build::build(&c.dicpath, &dicdir) {
             Ok(_) => {}

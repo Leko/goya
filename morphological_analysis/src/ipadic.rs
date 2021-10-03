@@ -57,7 +57,7 @@ pub struct IPADic {
     unknown_vocabulary: HashMap<usize, Word>,
 }
 impl IPADic {
-    pub fn from_dir(dir: &String) -> Result<IPADic, Box<dyn Error>> {
+    pub fn from_dir(dir: &str) -> Result<IPADic, Box<dyn Error>> {
         let classes = load_chars(Path::new(dir).join("char.def"))?;
         let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
         let unknown = load_unknown(Path::new(dir).join("unk.def"))?;
@@ -71,7 +71,7 @@ impl IPADic {
             for word in load_words_csv(path?)? {
                 homonyms
                     .entry(word.surface_form.to_string())
-                    .or_insert(vec![])
+                    .or_insert_with(Vec::new)
                     .push(id);
                 vocabulary.insert(id, word);
                 id += 1;
@@ -86,7 +86,7 @@ impl IPADic {
                 unknown_vocabulary.insert(id, word);
                 unknown_classes
                     .entry(class.to_string())
-                    .or_insert(vec![])
+                    .or_insert_with(Vec::new)
                     .push(id);
                 id += 1;
             }
@@ -146,7 +146,7 @@ impl IPADic {
         self.unknown_vocabulary.get(wid)
     }
 
-    pub fn get_unknown_words_by_class(&self, class: &String) -> Vec<(usize, &Word)> {
+    pub fn get_unknown_words_by_class(&self, class: &str) -> Vec<(usize, &Word)> {
         self.unknown_classes
             .get(class)
             .unwrap()
@@ -172,10 +172,7 @@ impl IPADic {
     }
 
     pub fn occurrence_cost(&self, wid: &usize) -> Option<i16> {
-        match self.get_known_word(wid) {
-            Some(w) => Some(w.cost),
-            _ => None,
-        }
+        self.get_known_word(wid).map(|w| w.cost)
     }
 
     pub fn get_char_class(&self, c: char) -> &str {
@@ -224,7 +221,7 @@ where
     let (utf8, _, _) = EUC_JP.decode(&eucjp);
     let lines = utf8
         .lines()
-        .filter(|line| line.len() > 0 && !line.starts_with('#'))
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .map(|line| Regex::new(r"#.*$").unwrap().replace(line, ""))
         .collect::<Vec<_>>();
 
@@ -318,7 +315,7 @@ where
     let mut map = HashMap::<String, Vec<Word>>::new();
     for w in words.into_iter() {
         map.entry(w.surface_form.to_string())
-            .or_insert(vec![])
+            .or_insert_with(Vec::new)
             .push(w);
     }
     Ok(map)
