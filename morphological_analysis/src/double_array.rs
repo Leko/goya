@@ -92,8 +92,7 @@ impl DoubleArray {
                 .get(&prefix)
                 .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
             da.insert_to_base(s, da.find_next_s(node));
-            for next_c in node.children.keys() {
-                let child = node.children.get(next_c).unwrap();
+            for (next_c, child) in node.children.iter() {
                 let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;
                 let t = as_usize(&t);
                 da.insert_to_check(t, s);
@@ -183,19 +182,20 @@ impl DoubleArray {
         self.check[index] = value;
     }
 
-    fn get_check_available_index(&self, left: usize) -> usize {
-        for i in left..self.check.len() {
-            match self.check.get(i) {
-                Some(0) => return i,
-                Some(_) => {}
-                _ => return i,
-            }
-        }
-        unreachable!("index must be found")
+    fn get_available_check_index(&self, left: usize) -> usize {
+        self.check
+            .iter()
+            .enumerate()
+            .skip(left)
+            // clippy says that `find is prefered to skip_while+next` but it's slower than the current
+            .skip_while(|(_, value)| value != &&0)
+            .next()
+            .map(|(i, _)| i)
+            .unwrap_or_else(|| unreachable!("index must be found"))
     }
 
     fn find_next_s(&self, child: &CommonPrefixTree) -> i32 {
-        let mut position = self.get_check_available_index(INDEX_ROOT + 1);
+        let mut position = self.get_available_check_index(INDEX_ROOT + 1);
         let min_code = self.get_code(child.min_char().unwrap()).unwrap();
         let offsets: Vec<_> = child
             .children

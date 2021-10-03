@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::collections::{BTreeMap, VecDeque};
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -32,8 +31,7 @@ impl CommonPrefixTree {
     fn dfs_collect(&self, prefix: &str) -> VecDeque<(String, &CommonPrefixTree)> {
         let mut open = VecDeque::new();
         open.push_back((prefix.to_string(), self));
-        for c in self.children.keys().sorted() {
-            let child = self.children.get(c).unwrap();
+        for (c, child) in self.children.iter() {
             let mut substr = String::from(prefix);
             substr.push(*c);
             open.append(&mut child.dfs_collect(&substr));
@@ -43,10 +41,10 @@ impl CommonPrefixTree {
 
     fn append_chars(&mut self, id: usize, text: &str, cursor: usize) {
         let c = text.chars().nth(cursor).unwrap();
-        if self.children.get(&c).is_none() {
-            self.children.insert(c, CommonPrefixTree::default());
-        }
-        let child = self.children.get_mut(&c).unwrap();
+        let child = self
+            .children
+            .entry(c)
+            .or_insert_with(CommonPrefixTree::default);
         if cursor + 1 == text.chars().count() {
             child.id = Some(id);
             return;
