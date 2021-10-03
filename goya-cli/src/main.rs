@@ -21,6 +21,7 @@ struct Opts {
 #[derive(Clap)]
 enum SubCommand {
     Compile(Compile),
+    Clean,
 }
 
 /// A subcommand for controlling testing
@@ -48,6 +49,11 @@ fn main() {
                 println!("{:?}", err);
             }
         },
+        Some(SubCommand::Clean) => {
+            let util = PathUtil::from(dicdir);
+            fs::remove_file(util.da_path()).expect("Failed to delete file");
+            fs::remove_file(util.dict_path()).expect("Failed to delete file");
+        }
         _ => {
             let util = PathUtil::from(dicdir);
             let encoded = fs::read(util.da_path()).expect("Failed to load dictionary");
