@@ -22,30 +22,30 @@ pub enum WordIdentifier {
     Unknown(usize),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub enum InvokeTiming {
     Fallback,
     Always,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CharDefinition {
     pub timing: InvokeTiming,
     pub group_by_same_kind: bool,
     pub len: usize,
 }
-#[derive(Debug, Serialize, Deserialize)]
-struct CharClass {
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+pub struct CharClass {
     range: RangeInclusive<char>,
     class: String,
     compatible_categories: Vec<String>,
 }
-#[derive(Debug, Serialize, Deserialize)]
-struct CharClassifier {
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+pub struct CharClassifier {
     chars: HashMap<String, CharDefinition>,
     ranges: Vec<CharClass>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct IPADic {
     pub vocabulary: HashMap<usize, Word>,
     homonyms: HashMap<String, Vec<usize>>,

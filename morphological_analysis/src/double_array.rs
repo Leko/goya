@@ -19,7 +19,7 @@ pub enum TransitionError {
     CheckOutOfBounds,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct DoubleArray {
     pub codes: IndexSet<char>,
     pub base: Vec<i32>,

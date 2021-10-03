@@ -4,9 +4,9 @@ use console::{style, Emoji};
 use morphological_analysis::common_prefix_tree::CommonPrefixTree;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
+use rkyv::ser::{serializers::AllocSerializer, Serializer};
 use std::error::Error;
 use std::fs;
-use std::fs::File;
 use std::time::Instant;
 
 const LOOKING_GLASS: Emoji = Emoji("🔍", "");
@@ -54,22 +54,21 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     );
     let util = PathUtil::from(dist_dir.to_string());
     util.mkdirp().expect("Failed to create directory");
-    fs::write(util.da_path(), bincode::serialize(&da).unwrap())
-        .expect("Failed to write dictionary");
-    fs::write(util.dict_path(), bincode::serialize(&ipadic).unwrap())
-        .expect("Failed to write dictionary");
 
+    let mut serializer = AllocSerializer::<256>::default();
+    serializer.serialize_value(&da).unwrap();
+    let bytes = serializer.into_serializer().into_inner();
+    fs::write(util.da_path(), &bytes).expect("Failed to write dictionary");
     eprintln!("DoubleArray stats:");
     eprintln!("  elements: {}", da.base.len());
-    eprintln!(
-        "  bytes: {}",
-        ByteSize(bincode::serialized_size(&da).unwrap())
-    );
+    eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
+
+    let mut serializer = AllocSerializer::<256>::default();
+    serializer.serialize_value(&ipadic).unwrap();
+    let bytes = serializer.into_serializer().into_inner();
+    fs::write(util.dict_path(), &bytes).expect("Failed to write dictionary");
     eprintln!("Dictionary stats:");
-    eprintln!(
-        "  bytes: {}",
-        ByteSize(bincode::serialized_size(&ipadic).unwrap())
-    );
+    eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
     let end = timer.elapsed();
     eprintln!(
