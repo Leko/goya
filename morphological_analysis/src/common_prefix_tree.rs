@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CommonPrefixTree {
@@ -24,13 +24,13 @@ impl CommonPrefixTree {
         self.append_chars(id, &token, 0);
     }
 
-    pub fn entires_dfs(&self) -> VecDeque<(String, &CommonPrefixTree)> {
+    pub fn entires_dfs(&self) -> Vec<(String, &CommonPrefixTree)> {
         self.dfs_collect(&String::new())
     }
 
-    fn dfs_collect(&self, prefix: &str) -> VecDeque<(String, &CommonPrefixTree)> {
-        let mut open = VecDeque::new();
-        open.push_back((prefix.to_string(), self));
+    fn dfs_collect(&self, prefix: &str) -> Vec<(String, &CommonPrefixTree)> {
+        let mut open = Vec::new();
+        open.push((prefix.to_string(), self));
         for (c, child) in self.children.iter() {
             let mut substr = String::from(prefix);
             substr.push(*c);
