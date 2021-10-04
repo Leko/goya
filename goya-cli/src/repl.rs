@@ -31,7 +31,7 @@ pub fn start(da: &DoubleArray, dict: &IPADic) -> Result<(), std::io::Error> {
                             writeln!(out, "{}\t{}", word.surface_form, word.meta.join(","))?;
                         }
                     }
-                    writeln!(out, "EOS")?;
+                    out.write(b"EOS\n")?;
                 }
             }
             Err(ReadlineError::Interrupted) => break,
