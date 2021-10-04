@@ -66,7 +66,7 @@ fn main() {
             let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
             let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
 
-            repl::start(&da, &ipadic)
+            repl::start(&da, &ipadic).unwrap()
         }
     }
 }
