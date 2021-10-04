@@ -1,6 +1,7 @@
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
+use morphological_analysis::vocabulary::Word;
 use rkyv::{archived_root, Deserialize, Infallible};
 use wasm_bindgen::prelude::*;
 
@@ -37,11 +38,14 @@ impl WasmLattice {
         if let Some(path) = self.lattice.find_best() {
             for wid in path.into_iter() {
                 let word = self.ipadic.get_word(&wid).unwrap();
-                if let WordIdentifier::Unknown(_) = wid {
-                    // TODO: Display actual matched unknown text
-                    best.push(word);
+                if let WordIdentifier::Unknown(_, surface_form) = wid {
+                    let actual = Word {
+                        surface_form,
+                        ..word.clone()
+                    };
+                    best.push(actual);
                 } else {
-                    best.push(word);
+                    best.push(word.clone());
                 }
             }
         }
@@ -51,9 +55,8 @@ impl WasmLattice {
 
 #[wasm_bindgen]
 pub fn ready() {
-    // Access to a property to run deserialization
-    &DOUBLE_ARRAY.base;
-    &IPADIC.vocabulary;
+    lazy_static::initialize(&DOUBLE_ARRAY);
+    lazy_static::initialize(&IPADIC);
 }
 
 #[wasm_bindgen]

@@ -1,6 +1,5 @@
 use super::double_array::DoubleArray;
-use super::ipadic::{IPADic, WordIdentifier};
-// use super::ipadic::{IPADic, InvokeTiming, WordIdentifier};
+use super::ipadic::{CharDefinition, IPADic, InvokeTiming, WordIdentifier};
 use log::trace;
 use std::collections::{HashSet, VecDeque};
 
@@ -19,6 +18,11 @@ impl Lattice {
         let mut indices = text.char_indices().map(|_| vec![]).collect::<Vec<_>>();
         let mut open_indices = VecDeque::from(vec![0]);
         let mut visited = HashSet::with_capacity(len);
+        let char_defs = text
+            .chars()
+            .map(|c| dict.get_char_def(c))
+            .collect::<Vec<&CharDefinition>>();
+
         while let Some(index) = open_indices.pop_front() {
             if visited.contains(&index) || index >= len {
                 continue;
@@ -26,13 +30,17 @@ impl Lattice {
             visited.insert(index);
 
             let c = text.chars().nth(index).unwrap();
-            // let class = dict.get_char_class(c);
-            // let def = dict.get_char_def(class);
-            // if let InvokeTiming::Always = def.timing {
-            //     for (wid, _) in dict.get_unknown_words_by_class(&class.to_string()).iter() {
-            //         indices[index].push((WordIdentifier::Unknown(*wid), def.len));
-            //     }
-            // }
+            let def = char_defs[index];
+            if let InvokeTiming::Always = def.timing {
+                let surface_form = dict.take_unknown_chars(&def, &text, index);
+                open_indices.push_back(index + surface_form.chars().count());
+                for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
+                    indices[index].push((
+                        WordIdentifier::Unknown(wid, surface_form.to_string()),
+                        surface_form.chars().count(),
+                    ));
+                }
+            }
 
             trace!("TRY INIT: {:?}({})", c, index);
             match da.init(c) {
@@ -227,12 +235,7 @@ impl Lattice {
             Some(best_path) => {
                 let mut ids = vec![];
                 for (i, j) in best_path.iter() {
-                    // FIXME: Replace it with Copy trait
-                    let id = match self.indices[*i - 1][*j].0 {
-                        WordIdentifier::Known(wid) => WordIdentifier::Known(wid),
-                        WordIdentifier::Unknown(wid) => WordIdentifier::Unknown(wid),
-                    };
-                    ids.push(id)
+                    ids.push(self.indices[*i - 1][*j].0.clone());
                 }
                 Some(ids)
             }

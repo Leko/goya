@@ -1,9 +1,10 @@
 use super::vocabulary::Word;
 use encoding_rs::EUC_JP;
 use glob::glob;
+use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::ops::RangeInclusive;
 use std::path::Path;
@@ -19,25 +20,36 @@ const CLASS_DEFAULT: &str = "DEFAULT";
 #[derive(Debug, Clone)]
 pub enum WordIdentifier {
     Known(usize),
-    Unknown(usize),
+    Unknown(usize, String), // ID, surface_form
 }
 
-#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(
+    Debug, PartialEq, Eq, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize,
+)]
 pub enum InvokeTiming {
     Fallback,
     Always,
 }
-#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(
+    Debug, PartialEq, Eq, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize,
+)]
 pub struct CharDefinition {
+    pub class: String,
     pub timing: InvokeTiming,
     pub group_by_same_kind: bool,
     pub len: usize,
+    pub compatibilities: HashSet<String>,
 }
+impl CharDefinition {
+    pub fn compatible_with(&self, class_name: &str) -> bool {
+        self.class.eq(class_name) || self.compatibilities.contains(class_name)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CharClass {
     range: RangeInclusive<char>,
     class: String,
-    compatible_categories: Vec<String>,
 }
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CharClassifier {
@@ -112,7 +124,7 @@ impl IPADic {
                 WordIdentifier::Known(id) => {
                     vocabulary.insert(id, word.clone());
                 }
-                WordIdentifier::Unknown(id) => {
+                WordIdentifier::Unknown(id, _) => {
                     unknown_vocabulary.insert(id, word.clone());
                 }
             }
@@ -134,7 +146,7 @@ impl IPADic {
     pub fn get_word(&self, wid: &WordIdentifier) -> Option<&Word> {
         match wid {
             WordIdentifier::Known(wid) => self.get_known_word(wid),
-            WordIdentifier::Unknown(wid) => self.get_unknown_word(wid),
+            WordIdentifier::Unknown(wid, _) => self.get_unknown_word(wid),
         }
     }
 
@@ -175,17 +187,38 @@ impl IPADic {
         self.get_known_word(wid).map(|w| w.cost)
     }
 
-    pub fn get_char_class(&self, c: char) -> &str {
-        for class in self.classes.ranges.iter() {
-            if class.range.contains(&c) {
-                return &class.class;
-            }
-        }
-        CLASS_DEFAULT
+    fn get_char_class(&self, c: char) -> &str {
+        self.classes
+            .ranges
+            .iter()
+            .find(|class| class.range.contains(&c))
+            .map(|class| class.class.as_str())
+            .unwrap_or_else(|| CLASS_DEFAULT)
     }
 
-    pub fn get_char_def(&self, class: &str) -> &CharDefinition {
+    pub fn get_char_def(&self, c: char) -> &CharDefinition {
+        let class = self.get_char_class(c);
         self.classes.chars.get(class).unwrap()
+    }
+
+    pub fn take_unknown_chars(&self, def: &CharDefinition, text: &str, start: usize) -> String {
+        if !def.group_by_same_kind {
+            return text.chars().skip(start).take(def.len).collect();
+        }
+
+        let mut len = 0;
+        text.chars()
+            .enumerate()
+            .skip(start)
+            .take_while(|(_, c)| {
+                if def.len != 0 && len > def.len || !def.compatible_with(self.get_char_class(*c)) {
+                    return false;
+                }
+                len += 1;
+                true
+            })
+            .map(|(_, c)| c)
+            .join("")
     }
 }
 
@@ -233,6 +266,7 @@ where
     for line in head {
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         let kind = parts[0].to_owned();
+        let class = kind.to_string();
         let timing = if parts[1] == "0" {
             InvokeTiming::Fallback
         } else {
@@ -243,9 +277,11 @@ where
         chars.insert(
             kind,
             CharDefinition {
+                class,
                 timing,
                 group_by_same_kind,
                 len,
+                compatibilities: HashSet::new(),
             },
         );
     }
@@ -268,15 +304,15 @@ where
             range[0]..=range[0]
         };
         let class = parts[1];
-        let compatible_categories = parts
+        let compatibilities = parts
             .iter()
             .skip(2)
             .map(|s| s.to_string())
-            .collect::<Vec<_>>();
+            .collect::<HashSet<_>>();
+        chars.get_mut(class).unwrap().compatibilities = compatibilities;
         ranges.push(CharClass {
             range,
             class: class.to_string(),
-            compatible_categories,
         });
     }
 
