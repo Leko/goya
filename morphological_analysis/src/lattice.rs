@@ -15,7 +15,7 @@ pub struct Lattice {
 impl Lattice {
     pub fn parse(text: &str, da: &DoubleArray, dict: &IPADic) -> Lattice {
         let len = text.chars().count();
-        let mut indices = text.char_indices().map(|_| vec![]).collect::<Vec<_>>();
+        let mut indices: Vec<Vec<(WordIdentifier, usize)>> = vec![vec![]; len];
         let mut open_indices = VecDeque::from(vec![0]);
         let mut visited = HashSet::with_capacity(len);
         let char_defs = text
@@ -32,7 +32,7 @@ impl Lattice {
             let c = text.chars().nth(index).unwrap();
             let def = char_defs[index];
             if let InvokeTiming::Always = def.timing {
-                let surface_form = dict.take_unknown_chars(&def, &text, index);
+                let surface_form = dict.take_unknown_chars(def, text, index);
                 open_indices.push_back(index + surface_form.chars().count());
                 for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
                     indices[index].push((
@@ -107,7 +107,7 @@ impl Lattice {
                 Err(reason) => {
                     trace!("  ERR: {:?}", reason);
                     if let InvokeTiming::Fallback = def.timing {
-                        let surface_form = dict.take_unknown_chars(&def, &text, index);
+                        let surface_form = dict.take_unknown_chars(def, text, index);
                         open_indices.push_back(index + surface_form.chars().count());
                         for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
                             indices[index].push((
@@ -285,27 +285,27 @@ fn get_dp_table(
             let before_cost = dp[i + 1][j].0;
             let left = dict.get_word(left_wid).unwrap();
             if i + wlen >= len {
-                let cost: i32 = (*dict
+                let cost = (*dict
                     .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
                     .unwrap() as i32)
                     + (left.cost as i32)
                     + before_cost;
                 if cost < dp[i + wlen + 1][0].0 {
-                    dp[i + wlen + 1][0] = (cost as i32, i + 1, j);
+                    dp[i + wlen + 1][0] = (cost, i + 1, j);
                 }
                 continue;
             }
 
             for (k, (right_wid, _)) in indices[i + wlen].iter().enumerate() {
                 let right = dict.get_word(right_wid).unwrap();
-                let cost: i32 = (*dict
+                let cost = (*dict
                     .transition_cost(left.left_context_id, right.right_context_id)
                     .unwrap() as i32)
                     + left.cost as i32
                     + right.cost as i32
                     + before_cost;
                 if cost < dp[i + 1 + wlen][k].0 {
-                    dp[i + 1 + wlen][k] = (cost as i32, i + 1, j);
+                    dp[i + 1 + wlen][k] = (cost, i + 1, j);
                 }
             }
         }

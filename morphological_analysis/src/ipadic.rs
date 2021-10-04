@@ -1,12 +1,10 @@
 use super::vocabulary::Word;
 use encoding_rs::EUC_JP;
 use glob::glob;
-use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::ops::RangeInclusive;
 use std::path::Path;
 use std::vec::Vec;
 use std::{fs, vec};
@@ -48,7 +46,7 @@ impl CharDefinition {
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CharClass {
-    range: RangeInclusive<char>,
+    range: (u32, u32),
     class: String,
 }
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -188,10 +186,11 @@ impl IPADic {
     }
 
     fn get_char_class(&self, c: char) -> &str {
+        let code = c as u32;
         self.classes
             .ranges
             .iter()
-            .find(|class| class.range.contains(&c))
+            .find(|class| class.range.0 <= code && code <= class.range.1)
             .map(|class| class.class.as_str())
             .unwrap_or_else(|| CLASS_DEFAULT)
     }
@@ -218,7 +217,7 @@ impl IPADic {
                 true
             })
             .map(|(_, c)| c)
-            .join("")
+            .collect()
     }
 }
 
@@ -299,9 +298,9 @@ where
             .map(|c| char::from_u32(c).unwrap())
             .collect::<Vec<_>>();
         let range = if range.len() > 1 {
-            range[0]..=range[1]
+            (range[0] as u32, range[1] as u32)
         } else {
-            range[0]..=range[0]
+            (range[0] as u32, range[0] as u32)
         };
         let class = parts[1];
         let compatibilities = parts

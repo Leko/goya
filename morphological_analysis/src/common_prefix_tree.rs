@@ -29,8 +29,7 @@ impl CommonPrefixTree {
     }
 
     fn dfs_collect(&self, prefix: &str) -> Vec<(String, &CommonPrefixTree)> {
-        let mut open = Vec::new();
-        open.push((prefix.to_string(), self));
+        let mut open = vec![(prefix.to_string(), self)];
         for (c, child) in self.children.iter() {
             let mut substr = String::from(prefix);
             substr.push(*c);
