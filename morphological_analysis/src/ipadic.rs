@@ -211,7 +211,7 @@ impl IPADic {
             .enumerate()
             .skip(start)
             .take_while(|(_, c)| {
-                if def.len != 0 && len > def.len || !def.compatible_with(self.get_char_class(*c)) {
+                if def.len != 0 && len >= def.len || !def.compatible_with(self.get_char_class(*c)) {
                     return false;
                 }
                 len += 1;

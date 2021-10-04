@@ -106,7 +106,16 @@ impl Lattice {
                 }
                 Err(reason) => {
                     trace!("  ERR: {:?}", reason);
-                    // TODO: Handle unknown word
+                    if let InvokeTiming::Fallback = def.timing {
+                        let surface_form = dict.take_unknown_chars(&def, &text, index);
+                        open_indices.push_back(index + surface_form.chars().count());
+                        for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
+                            indices[index].push((
+                                WordIdentifier::Unknown(wid, surface_form.to_string()),
+                                surface_form.chars().count(),
+                            ));
+                        }
+                    }
                 }
             }
         }
