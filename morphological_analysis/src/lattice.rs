@@ -1,15 +1,18 @@
+use super::char_class::{CharDefinition, InvokeTiming};
 use super::double_array::DoubleArray;
-use super::ipadic::{CharDefinition, IPADic, InvokeTiming, WordIdentifier};
+use super::ipadic::{IPADic, WordIdentifier};
 use std::collections::{HashSet, VecDeque};
 
-const BOS_CONTEXT_ID: usize = 0;
-const EOS_CONTEXT_ID: usize = 0;
+pub const BOS_CONTEXT_ID: usize = 0;
+pub const EOS_CONTEXT_ID: usize = 0;
 const NODE_BOS: usize = 0;
 
 #[derive(Debug)]
 pub struct Lattice {
-    indices: Vec<Vec<(WordIdentifier, usize)>>,
-    dp: Vec<Vec<(i32, usize, usize)>>,
+    // (wid, length of the word)
+    pub indices: Vec<Vec<(WordIdentifier, usize)>>,
+    // (min cost, index, length)
+    pub dp: Vec<Vec<(i32, usize, usize)>>,
 }
 impl Lattice {
     pub fn parse(text: &str, da: &DoubleArray, dict: &IPADic) -> Lattice {
@@ -19,7 +22,7 @@ impl Lattice {
         let mut visited = HashSet::with_capacity(len);
         let char_defs = text
             .chars()
-            .map(|c| dict.get_char_def(c))
+            .map(|c| dict.classes.classify(c))
             .collect::<Vec<&CharDefinition>>();
 
         while let Some(index) = open_indices.pop_front() {
@@ -31,7 +34,7 @@ impl Lattice {
             let c = text.chars().nth(index).unwrap();
             let def = char_defs[index];
             if let InvokeTiming::Always = def.timing {
-                let surface_form = dict.take_unknown_chars(def, text, index);
+                let surface_form = dict.classes.take_unknown_chars(def, text, index);
                 open_indices.push_back(index + surface_form.chars().count());
                 for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
                     indices[index].push((
@@ -47,7 +50,13 @@ impl Lattice {
                         Ok(wid) => {
                             open_indices.push_back(index + 1);
                             for wid in dict.resolve_homonyms(wid).unwrap().iter() {
-                                indices[index].push((WordIdentifier::Known(*wid), 1));
+                                indices[index].push((
+                                    WordIdentifier::Known(
+                                        *wid,
+                                        text.chars().skip(index).take(1).collect(),
+                                    ),
+                                    1,
+                                ));
                             }
                         }
                         Err(_) => continue,
@@ -61,11 +70,19 @@ impl Lattice {
                                     Ok(wid) => {
                                         open_indices.push_back(j + 1);
                                         for wid in dict.resolve_homonyms(wid).unwrap().iter() {
-                                            indices[index]
-                                                .push((WordIdentifier::Known(*wid), j + 1 - index));
+                                            indices[index].push((
+                                                WordIdentifier::Known(
+                                                    *wid,
+                                                    text.chars()
+                                                        .skip(index)
+                                                        .take(j + 1 - index)
+                                                        .collect(),
+                                                ),
+                                                j + 1 - index,
+                                            ));
                                         }
                                     }
-                                    Err(_) => continue,
+                                    Err(_) => {}
                                 }
                                 cursor = next;
                             }
@@ -76,7 +93,7 @@ impl Lattice {
                 }
                 Err(_) => {
                     if let InvokeTiming::Fallback = def.timing {
-                        let surface_form = dict.take_unknown_chars(def, text, index);
+                        let surface_form = dict.classes.take_unknown_chars(def, text, index);
                         open_indices.push_back(index + surface_form.chars().count());
                         for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
                             indices[index].push((
@@ -88,7 +105,6 @@ impl Lattice {
                 }
             }
         }
-
         Lattice {
             dp: get_dp_table(&indices, dict),
             indices,
@@ -105,92 +121,7 @@ impl Lattice {
         wids
     }
 
-    // FIXME: This is not a concern of this struct
-    pub fn as_dot(&self, dict: &IPADic) -> String {
-        let bold = " penwidth=3";
-        let len = self.indices.len();
-        let best = self.find_best_path();
-        let mut dot = String::from("");
-        dot.push_str("digraph lattice {\n");
-        dot.push_str("  labelloc=\"t\";\n");
-        dot.push_str("  label=\"N = gross min, (N) = individual cost\";\n");
-        dot.push_str("  BOS [label=\"BOS\\n0 (0)\" shape=\"doublecircle\"];\n");
-        dot.push_str("  EOS [label=\"EOS\\n(0)\" shape=\"doublecircle\"];\n");
-        for (i, index) in self.indices.iter().enumerate() {
-            for (j, (left_wid, wlen)) in index.iter().enumerate() {
-                let left = dict.get_word(left_wid).unwrap();
-                let node_style = match &best {
-                    Some(best) if best.contains(&(i + 1, j)) => bold,
-                    _ => "",
-                };
-                dot.push_str(&format!(
-                    "  \"{}_{}\" [label=\"{}\\n{} ({}, {})\"{}];\n",
-                    i,
-                    j,
-                    left.surface_form,
-                    left.pos().unwrap(),
-                    self.dp[i + 1][j].0,
-                    left.cost,
-                    node_style,
-                ));
-                if i == 0 {
-                    let right = left;
-                    let cost = dict
-                        .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
-                        .unwrap();
-                    let bos_edge_style = match &best {
-                        Some(best) if best.contains(&(i + 1, j)) => bold,
-                        _ => "",
-                    };
-                    dot.push_str(&format!(
-                        "  BOS -> \"{}_{}\" [label=\"({})\"{}];\n",
-                        i, j, cost, bos_edge_style
-                    ));
-                }
-                if i + wlen >= len {
-                    let cost = dict
-                        .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
-                        .unwrap();
-                    let eos_edge_style = match &best {
-                        Some(best) if best.contains(&(i + 1, j)) => bold,
-                        _ => "",
-                    };
-                    dot.push_str(&format!(
-                        "  \"{}_{}\" -> EOS [label=\"({})\"{}];\n",
-                        i, j, cost, eos_edge_style
-                    ));
-                    continue;
-                }
-                for (k, (right_wid, _)) in self.indices[i + wlen].iter().enumerate() {
-                    let right = dict.get_word(right_wid).unwrap();
-                    let cost = dict
-                        .transition_cost(left.left_context_id, right.right_context_id)
-                        .unwrap();
-                    let edge_style = match &best {
-                        Some(best)
-                            if best.contains(&(i + 1, j)) && best.contains(&(i + wlen + 1, k)) =>
-                        {
-                            bold
-                        }
-                        _ => "",
-                    };
-                    dot.push_str(&format!(
-                        "  \"{}_{}\" -> \"{}_{}\" [label=\"({})\"{}];\n",
-                        i,
-                        j,
-                        i + wlen,
-                        k,
-                        cost,
-                        edge_style
-                    ));
-                }
-            }
-        }
-        dot.push_str("}\n");
-        dot
-    }
-
-    fn find_best_path(&self) -> Option<Vec<(usize, usize)>> {
+    pub fn find_best_path(&self) -> Option<Vec<(usize, usize)>> {
         let mut path = vec![];
         let mut cursor = (self.dp.len() - 1, 0);
         loop {

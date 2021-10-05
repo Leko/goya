@@ -4,6 +4,7 @@ use console::{style, Emoji};
 use morphological_analysis::common_prefix_tree::CommonPrefixTree;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
+use morphological_analysis::ipadic_loader::load;
 use rkyv::ser::{serializers::AllocSerializer, Serializer};
 use std::error::Error;
 use std::fs;
@@ -23,7 +24,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         style("[1/4]").bold().dim(),
         LOOKING_GLASS
     );
-    let ipadic = IPADic::from_dir(src_dir)?;
+    let ipadic: IPADic = load(src_dir)?;
 
     eprintln!(
         "{} {} Analyzing vocabulary...",

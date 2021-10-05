@@ -1,3 +1,4 @@
+use morphological_analysis::dot;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
@@ -12,14 +13,17 @@ pub fn start(da: &DoubleArray, dict: &IPADic) -> Result<(), std::io::Error> {
             Ok(line) if line.is_empty() => continue,
             Ok(line) => {
                 let lattice = Lattice::parse(&line, da, dict);
-                // writeln!(out,"{}", lattice.as_dot(dict))?;
+                writeln!(out, "{}", dot::render(&lattice, dict).unwrap())?;
                 if let Some(path) = lattice.find_best() {
                     for wid in path.into_iter() {
                         let word = dict.get_word(&wid).unwrap();
-                        if let WordIdentifier::Unknown(_, surface_form) = wid {
-                            writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
-                        } else {
-                            writeln!(out, "{}\t{}", word.surface_form, word.features.join(","))?;
+                        match wid {
+                            WordIdentifier::Unknown(_, surface_form) => {
+                                writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
+                            }
+                            WordIdentifier::Known(_, surface_form) => {
+                                writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
+                            }
                         }
                     }
                     out.write(b"EOS\n")?;

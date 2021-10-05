@@ -1,7 +1,8 @@
+use morphological_analysis::dot;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
-use morphological_analysis::vocabulary::Word;
+use morphological_analysis::morpheme::Morpheme;
 use rkyv::{archived_root, Deserialize, Infallible};
 use wasm_bindgen::prelude::*;
 
@@ -29,7 +30,7 @@ pub struct WasmLattice {
 #[wasm_bindgen]
 impl WasmLattice {
     pub fn as_dot(&self) -> String {
-        self.lattice.as_dot(&IPADIC)
+        dot::render(&self.lattice, &IPADIC).unwrap()
     }
 
     pub fn find_best(&self) -> String {
@@ -38,7 +39,7 @@ impl WasmLattice {
             for wid in path.into_iter() {
                 let word = IPADIC.get_word(&wid).unwrap();
                 if let WordIdentifier::Unknown(_, surface_form) = wid {
-                    let actual = Word {
+                    let actual = Morpheme {
                         surface_form,
                         ..word.clone()
                     };

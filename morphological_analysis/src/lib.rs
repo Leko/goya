@@ -1,5 +1,9 @@
+pub mod char_class;
 pub mod common_prefix_tree;
+pub mod dot;
 pub mod double_array;
+pub mod id;
 pub mod ipadic;
+pub mod ipadic_loader;
 pub mod lattice;
-pub mod vocabulary;
+pub mod morpheme;
