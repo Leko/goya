@@ -6,7 +6,6 @@ authors = ["Leko <leko.noor@gmail.com>"]
 
 [dependencies]
 morphological_analysis = { path = "../morphological_analysis" }
-rustyline = "9.0.0"
 indexmap = "1.7"
 itertools = "0.10"
 console = "0.14"
