@@ -3,6 +3,9 @@ name = "goya"
 version = "0.1.0"
 edition = "2018"
 authors = ["Leko <leko.noor@gmail.com>"]
+description = "CLI command to run Goya"
+repository = "https://github.com/Leko/goya"
+license = "MIT"
 
 [dependencies]
 morphological_analysis = { path = "../morphological_analysis" }

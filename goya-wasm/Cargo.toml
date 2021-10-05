@@ -3,6 +3,9 @@ name = "goya-wasm"
 version = "0.1.0"
 edition = "2018"
 authors = ["Leko <leko.noor@gmail.com>"]
+description = "WebAssembly port of Goya"
+repository = "https://github.com/Leko/goya"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib"]
