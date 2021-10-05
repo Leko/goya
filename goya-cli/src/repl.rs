@@ -17,9 +17,9 @@ pub fn start(da: &DoubleArray, dict: &IPADic) -> Result<(), std::io::Error> {
                     for wid in path.into_iter() {
                         let word = dict.get_word(&wid).unwrap();
                         if let WordIdentifier::Unknown(_, surface_form) = wid {
-                            writeln!(out, "{}\t{}", surface_form, word.meta.join(","))?;
+                            writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
                         } else {
-                            writeln!(out, "{}\t{}", word.surface_form, word.meta.join(","))?;
+                            writeln!(out, "{}\t{}", word.surface_form, word.features.join(","))?;
                         }
                     }
                     out.write(b"EOS\n")?;

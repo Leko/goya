@@ -20,7 +20,7 @@ pub struct Word {
     pub cost: i16,
     /// > 5カラム目以降は, ユーザ定義の CSV フィールドです. 基本的に どんな内容でも CSV の許す限り追加することができます.
     /// > https://taku910.github.io/mecab/dic-detail.html
-    pub meta: Vec<String>,
+    pub features: Vec<String>,
 }
 impl Word {
     pub fn new(
@@ -28,19 +28,19 @@ impl Word {
         left_context_id: usize,
         right_context_id: usize,
         cost: i16,
-        meta: Vec<String>,
+        features: Vec<String>,
     ) -> Word {
         Word {
             surface_form: surface_form.into(),
             left_context_id,
             right_context_id,
             cost,
-            meta,
+            features,
         }
     }
 
     // FIXME: Depends on IPADic
     pub fn pos(&self) -> Option<&String> {
-        self.meta.get(META_POS)
+        self.features.get(META_POS)
     }
 }
