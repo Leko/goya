@@ -16,16 +16,16 @@ enum ResultTab {
 }
 
 type Props = {
-  dot: string;
-  best: unknown[] | null;
-  stats: Stats;
+  dot?: string;
+  best?: unknown[] | null;
+  stats?: Stats;
 };
 
 export function Result(props: Props) {
   const { dot, best, stats } = props;
   const [tab, setTab] = useState(ResultTab.Table);
 
-  const handleChangeTab = (_, newValue) => {
+  const handleChangeTab = (_: unknown, newValue: ResultTab) => {
     setTab(newValue);
   };
 
@@ -35,15 +35,15 @@ export function Result(props: Props) {
         <Stack direction="row" spacing={1}>
           <Chip
             size="small"
-            label={`load wasm: ${stats?.loadWasm.toFixed(0) ?? "- "}ms`}
+            label={`load wasm: ${stats?.loadWasm.toFixed(1) ?? "- "}ms`}
           />
           <Chip
             size="small"
-            label={`load dictionary: ${stats?.loadDict.toFixed(0) ?? "- "}ms`}
+            label={`load dictionary: ${stats?.loadDict.toFixed(1) ?? "- "}ms`}
           />
           <Chip
             size="small"
-            label={`parse: ${stats?.parse.toFixed(0) ?? "- "}ms`}
+            label={`parse: ${stats?.parse.toFixed(1) ?? "- "}ms`}
           />
         </Stack>
       </Box>
@@ -53,7 +53,7 @@ export function Result(props: Props) {
           <Tab label="ラティス" value={ResultTab.Dot} disabled={!best} />
         </TabList>
         <TabPanel value={ResultTab.Table}>
-          <Table rows={best ?? []} />
+          <Table rows={best ?? ([] as any[])} />
         </TabPanel>
         <TabPanel value={ResultTab.Dot}>
           {dot ? <Dot dot={dot} /> : null}

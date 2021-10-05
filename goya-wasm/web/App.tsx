@@ -9,24 +9,25 @@ import TextField from "@mui/material/TextField";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { useDebounce } from "react-use";
 import * as Comlink from "comlink";
-import type { WasmLattice } from "../pkg";
 import type { Stats } from "./MorphologicalAnalysis.worker";
 import { Result } from "./Result";
 
-const proxy = Comlink.wrap(
+interface ProxyAPI {
+  parse: (input: ArrayBufferLike) => Promise<ArrayBufferLike>;
+}
+const proxy = Comlink.wrap<ProxyAPI>(
   new Worker(new URL("./MorphologicalAnalysis.worker.ts", import.meta.url))
 );
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export function App() {
   const [text, setText] = useState("すもももももももものうち");
-  const [result, setResult] = useState<
-    | {
-        dot: string;
-        best: unknown[];
-        stats: Stats;
-      }[]
-    | null
-  >(null);
+  const [result, setResult] = useState<{
+    dot: string;
+    best: unknown[];
+    stats: Stats;
+  } | null>(null);
 
   const handleChangeText = useCallback(
     (event) => {
@@ -39,14 +40,18 @@ export function App() {
       if (text.length === 0) {
         setResult(null);
       } else {
-        const decoder = new TextDecoder();
-        proxy.parse(text).then(({ dot, best, stats }) => {
-          setResult({
-            stats: JSON.parse(decoder.decode(stats)),
-            dot: decoder.decode(dot),
-            best: JSON.parse(decoder.decode(best)),
+        const input = encoder.encode(text);
+        proxy
+          .parse(Comlink.transfer(input, [input.buffer]))
+          .then((res) => decoder.decode(res))
+          .then((res) => JSON.parse(res))
+          .then(({ dot, best, stats }) => {
+            setResult({
+              stats,
+              dot,
+              best: JSON.parse(best),
+            });
           });
-        });
       }
     },
     200,
@@ -94,7 +99,7 @@ export function App() {
           />
         </Box>
         <Box mt={2}>
-          <Result {...result} />
+          <Result {...(result ?? {})} />
         </Box>
       </Container>
     </>
