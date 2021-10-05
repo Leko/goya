@@ -24,20 +24,19 @@ lazy_static! {
 #[wasm_bindgen]
 pub struct WasmLattice {
     lattice: Lattice,
-    ipadic: IPADic,
 }
 
 #[wasm_bindgen]
 impl WasmLattice {
     pub fn as_dot(&self) -> String {
-        self.lattice.as_dot(&self.ipadic)
+        self.lattice.as_dot(&IPADIC)
     }
 
     pub fn find_best(&self) -> String {
         let mut best = vec![];
         if let Some(path) = self.lattice.find_best() {
             for wid in path.into_iter() {
-                let word = self.ipadic.get_word(&wid).unwrap();
+                let word = IPADIC.get_word(&wid).unwrap();
                 if let WordIdentifier::Unknown(_, surface_form) = wid {
                     let actual = Word {
                         surface_form,
@@ -61,9 +60,7 @@ pub fn ready() {
 
 #[wasm_bindgen]
 pub fn parse(text: &str) -> WasmLattice {
-    let lattice = Lattice::parse(text, &DOUBLE_ARRAY, &IPADIC);
     WasmLattice {
-        ipadic: IPADIC.shrink(lattice.word_identifiers()),
-        lattice,
+        lattice: Lattice::parse(text, &DOUBLE_ARRAY, &IPADIC),
     }
 }

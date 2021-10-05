@@ -111,36 +111,6 @@ impl IPADic {
         })
     }
 
-    // TODO: Create another struct
-    pub fn shrink(&self, wids: Vec<WordIdentifier>) -> IPADic {
-        let mut vocabulary = HashMap::new();
-        let mut unknown_vocabulary = HashMap::new();
-
-        for wid in wids.into_iter() {
-            let word = self.get_word(&wid).unwrap();
-            match wid {
-                WordIdentifier::Known(id) => {
-                    vocabulary.insert(id, word.clone());
-                }
-                WordIdentifier::Unknown(id, _) => {
-                    unknown_vocabulary.insert(id, word.clone());
-                }
-            }
-        }
-
-        IPADic {
-            vocabulary,
-            homonyms: HashMap::new(),
-            classes: CharClassifier {
-                chars: HashMap::new(),
-                ranges: vec![],
-            },
-            matrix: self.matrix.clone(),
-            unknown_classes: HashMap::new(),
-            unknown_vocabulary,
-        }
-    }
-
     pub fn get_word(&self, wid: &WordIdentifier) -> Option<&Word> {
         match wid {
             WordIdentifier::Known(wid) => self.get_known_word(wid),
