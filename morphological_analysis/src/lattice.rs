@@ -1,6 +1,5 @@
 use super::double_array::DoubleArray;
 use super::ipadic::{CharDefinition, IPADic, InvokeTiming, WordIdentifier};
-use log::trace;
 use std::collections::{HashSet, VecDeque};
 
 const BOS_CONTEXT_ID: usize = 0;
@@ -42,70 +41,40 @@ impl Lattice {
                 }
             }
 
-            trace!("TRY INIT: {:?}({})", c, index);
             match da.init(c) {
                 Ok((mut cursor, _)) => {
-                    trace!("  OK: cursor={}", cursor);
-                    trace!("  TRY STOP");
                     match da.stop(cursor as usize) {
                         Ok(wid) => {
-                            trace!(
-                                "    OK: wid={}, homonyms={:?}",
-                                wid,
-                                dict.resolve_homonyms(wid)
-                            );
                             open_indices.push_back(index + 1);
                             for wid in dict.resolve_homonyms(wid).unwrap().iter() {
                                 indices[index].push((WordIdentifier::Known(*wid), 1));
                             }
                         }
-                        Err(reason) => {
-                            trace!("    ERR: {:?}", reason);
-                        }
+                        Err(_) => continue,
                     }
                     let mut j = index + 1;
-                    trace!("    START LOOP: j={}, len={}", j, len);
                     while j < len {
                         let c = text.chars().nth(j).unwrap();
-                        trace!("      TRANSITION: j={}, len={}, c={:?}", j, len, c);
                         match da.transition(cursor as usize, c) {
                             Ok((next, _)) => {
-                                trace!(
-                                    "        OK: cursor={}, next={}, stop={:?}",
-                                    cursor,
-                                    next,
-                                    da.stop(next as usize)
-                                );
                                 match da.stop(next as usize) {
                                     Ok(wid) => {
-                                        trace!(
-                                            "        STOP: idx={}, wid={}, homonyms={:?}",
-                                            j + 1,
-                                            wid,
-                                            dict.resolve_homonyms(wid)
-                                        );
                                         open_indices.push_back(j + 1);
                                         for wid in dict.resolve_homonyms(wid).unwrap().iter() {
                                             indices[index]
                                                 .push((WordIdentifier::Known(*wid), j + 1 - index));
                                         }
                                     }
-                                    Err(reason) => {
-                                        trace!("        ERR: {:?}", reason);
-                                    }
+                                    Err(_) => continue,
                                 }
                                 cursor = next;
                             }
-                            Err(reason) => {
-                                trace!("        ERR: {:?}", reason);
-                                break;
-                            }
+                            Err(_) => break,
                         }
                         j += 1;
                     }
                 }
-                Err(reason) => {
-                    trace!("  ERR: {:?}", reason);
+                Err(_) => {
                     if let InvokeTiming::Fallback = def.timing {
                         let surface_form = dict.take_unknown_chars(def, text, index);
                         open_indices.push_back(index + surface_form.chars().count());
