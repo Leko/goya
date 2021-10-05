@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
@@ -7,8 +7,6 @@ import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import type { Stats } from "./MorphologicalAnalysis.worker";
-import { Table } from "./Table";
-import { Dot } from "./Dot";
 
 enum ResultTab {
   Table = "Table",
@@ -20,6 +18,9 @@ type Props = {
   best?: unknown[] | null;
   stats?: Stats;
 };
+
+const Table = lazy(() => import(/* webpackChunkName: "table" */ "./Table"));
+const Dot = lazy(() => import(/* webpackChunkName: "dot" */ "./Dot"));
 
 export function Result(props: Props) {
   const { dot, best, stats } = props;
@@ -53,10 +54,12 @@ export function Result(props: Props) {
           <Tab label="ラティス" value={ResultTab.Dot} disabled={!best} />
         </TabList>
         <TabPanel value={ResultTab.Table}>
-          <Table rows={best ?? ([] as any[])} />
+          <Suspense fallback={null}>
+            <Table rows={best ?? ([] as any[])} />
+          </Suspense>
         </TabPanel>
         <TabPanel value={ResultTab.Dot}>
-          {dot ? <Dot dot={dot} /> : null}
+          <Suspense fallback={null}>{dot ? <Dot dot={dot} /> : null}</Suspense>
         </TabPanel>
       </TabContext>
     </>

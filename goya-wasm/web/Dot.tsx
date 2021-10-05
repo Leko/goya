@@ -10,7 +10,7 @@ type Props = {
 
 const viz = new Viz({ workerURL });
 
-export function Dot(props: Props) {
+export default function Dot(props: Props) {
   const { dot } = props;
   const [svg, setSVG] = useState<string>("");
 

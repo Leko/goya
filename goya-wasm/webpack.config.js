@@ -17,7 +17,7 @@ module.exports = {
   entry: "./web/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
-    chunkFilename: "[name]-[chunkhash].js",
+    filename: "[name].[contenthash].js",
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
