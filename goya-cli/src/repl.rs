@@ -2,9 +2,10 @@ use morphological_analysis::dot;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
+use morphological_analysis::word_set::WordSet;
 use std::io::{stdin, stdout, BufRead, BufWriter, Write};
 
-pub fn start(da: &DoubleArray, dict: &IPADic) -> Result<(), std::io::Error> {
+pub fn start(da: &DoubleArray, dict: &IPADic, word_set: &WordSet) -> Result<(), std::io::Error> {
     let out = stdout();
     let mut out = BufWriter::new(out.lock());
 
@@ -16,17 +17,18 @@ pub fn start(da: &DoubleArray, dict: &IPADic) -> Result<(), std::io::Error> {
                 writeln!(out, "{}", dot::render(&lattice, dict).unwrap())?;
                 if let Some(path) = lattice.find_best() {
                     for wid in path.into_iter() {
-                        let word = dict.get_word(&wid).unwrap();
                         match wid {
-                            WordIdentifier::Unknown(_, surface_form) => {
-                                writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
+                            WordIdentifier::Unknown(id, surface_form) => {
+                                let features = &word_set.unknown.get(&id).unwrap().features;
+                                writeln!(out, "{}\t{}", surface_form, features.join(","))?;
                             }
-                            WordIdentifier::Known(_, surface_form) => {
-                                writeln!(out, "{}\t{}", surface_form, word.features.join(","))?;
+                            WordIdentifier::Known(id, surface_form) => {
+                                let features = &word_set.known.get(&id).unwrap().features;
+                                writeln!(out, "{}\t{}", surface_form, features.join(","))?;
                             }
                         }
                     }
-                    out.write(b"EOS\n")?;
+                    writeln!(out, "EOS")?;
                     out.flush()?;
                 }
             }

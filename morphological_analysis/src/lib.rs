@@ -7,3 +7,4 @@ pub mod ipadic;
 pub mod ipadic_loader;
 pub mod lattice;
 pub mod morpheme;
+pub mod word_set;

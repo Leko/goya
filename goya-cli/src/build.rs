@@ -3,7 +3,6 @@ use bytesize::ByteSize;
 use console::{style, Emoji};
 use morphological_analysis::common_prefix_tree::CommonPrefixTree;
 use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::ipadic::IPADic;
 use morphological_analysis::ipadic_loader::load;
 use rkyv::ser::{serializers::AllocSerializer, Serializer};
 use std::error::Error;
@@ -24,7 +23,9 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         style("[1/4]").bold().dim(),
         LOOKING_GLASS
     );
-    let ipadic: IPADic = load(src_dir)?;
+    let loaded = load(src_dir)?;
+    let mut ipadic = loaded.ipadic;
+    let word_set = loaded.word_set;
 
     eprintln!(
         "{} {} Analyzing vocabulary...",
@@ -32,7 +33,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         PAPER
     );
     let mut cpt = CommonPrefixTree::default();
-    for (id, word) in ipadic.vocabulary.iter() {
+    for (id, word) in word_set.known.iter() {
         cpt.append(*id, &word.surface_form);
     }
 
@@ -41,12 +42,11 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         style("[3/4]").bold().dim(),
         CLIP
     );
-    // let guard = pprof::ProfilerGuard::new(100).unwrap();
     let da = DoubleArray::from_cpt(&cpt);
-    // if let Ok(report) = guard.report().build() {
-    //     let file = File::create("flamegraph.svg").unwrap();
-    //     report.flamegraph(file).unwrap();
-    // };
+
+    // DoubleArray only has one ID per surface form.
+    let used_wids = da.wids().collect();
+    ipadic.shrink_to_wids(&used_wids);
 
     eprintln!(
         "{} {} Exporting dictionary...",
@@ -69,6 +69,13 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.dict_path(), &bytes).expect("Failed to write dictionary");
     eprintln!("Dictionary stats:");
+    eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
+
+    let mut serializer = AllocSerializer::<256>::default();
+    serializer.serialize_value(&word_set).unwrap();
+    let bytes = serializer.into_serializer().into_inner();
+    fs::write(util.features_path(), &bytes).expect("Failed to write dictionary");
+    eprintln!("Word features stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
     let end = timer.elapsed();

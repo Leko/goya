@@ -24,15 +24,15 @@ export default function Table(props: Props) {
   const rows = props.rows.map((word, i) => ({
     id: i,
     ...word,
-    feature_0: word.features[0],
-    feature_1: word.features[1],
-    feature_2: word.features[2],
-    feature_3: word.features[3],
-    feature_4: word.features[4],
-    feature_5: word.features[5],
-    feature_6: word.features[6],
-    feature_7: word.features[7],
-    feature_8: word.features[8],
+    feature_0: word.features?.[0],
+    feature_1: word.features?.[1],
+    feature_2: word.features?.[2],
+    feature_3: word.features?.[3],
+    feature_4: word.features?.[4],
+    feature_5: word.features?.[5],
+    feature_6: word.features?.[6],
+    feature_7: word.features?.[7],
+    feature_8: word.features?.[8],
   }));
 
   return (

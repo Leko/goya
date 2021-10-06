@@ -25,6 +25,7 @@ export function App() {
   const [text, setText] = useState("すもももももももものうち");
   const [result, setResult] = useState<{
     dot: string;
+    wakachi: string[];
     best: unknown[];
     stats: Stats;
   } | null>(null);
@@ -45,13 +46,7 @@ export function App() {
           .parse(Comlink.transfer(input, [input.buffer]))
           .then((res) => decoder.decode(res))
           .then((res) => JSON.parse(res))
-          .then(({ dot, best, stats }) => {
-            setResult({
-              stats,
-              dot,
-              best: JSON.parse(best),
-            });
-          });
+          .then(setResult);
       }
     },
     200,

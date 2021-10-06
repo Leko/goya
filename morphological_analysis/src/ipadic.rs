@@ -1,13 +1,17 @@
 use super::char_class::CharClassifier;
 use super::morpheme::Morpheme;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 use std::vec::Vec;
+
+// TODO: Make it newtype idiom
+type MorphemeId = usize;
 
 #[derive(Debug, Clone)]
 pub enum WordIdentifier {
-    Known(usize, String),   // ID, surface_form
-    Unknown(usize, String), // ID, surface_form
+    Known(MorphemeId, String),   // ID, surface_form
+    Unknown(MorphemeId, String), // ID, surface_form
 }
 impl WordIdentifier {
     pub fn get_surface(&self) -> &str {
@@ -21,7 +25,7 @@ impl WordIdentifier {
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct IPADic {
     pub vocabulary: HashMap<usize, Morpheme>,
-    homonyms: HashMap<String, Vec<usize>>,
+    homonyms: HashMap<MorphemeId, Vec<usize>>,
     // FIXME: Remove
     pub classes: CharClassifier,
     matrix: Vec<Vec<i16>>,
@@ -33,7 +37,7 @@ pub struct IPADic {
 impl IPADic {
     pub fn from(
         vocabulary: HashMap<usize, Morpheme>,
-        homonyms: HashMap<String, Vec<usize>>,
+        homonyms: HashMap<MorphemeId, Vec<usize>>,
         classes: CharClassifier,
         matrix: Vec<Vec<i16>>,
         unknown_classes: HashMap<String, Vec<usize>>,
@@ -74,10 +78,7 @@ impl IPADic {
     }
 
     pub fn resolve_homonyms(&self, wid: usize) -> Option<&Vec<usize>> {
-        if let Some(word) = self.get_known_word(&wid) {
-            return Some(self.homonyms.get(&word.surface_form).unwrap());
-        }
-        None
+        self.homonyms.get(&wid)
     }
 
     pub fn transition_cost(&self, left: usize, right: usize) -> Option<&i16> {
@@ -91,5 +92,10 @@ impl IPADic {
 
     pub fn occurrence_cost(&self, wid: &usize) -> Option<i16> {
         self.get_known_word(wid).map(|w| w.cost)
+    }
+
+    pub fn shrink_to_wids(&mut self, wids: &Vec<usize>) {
+        let set: HashSet<usize> = HashSet::from_iter(wids.iter().cloned());
+        self.homonyms.retain(|k, _| set.contains(k));
     }
 }

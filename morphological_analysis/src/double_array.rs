@@ -41,6 +41,13 @@ impl DoubleArray {
         DoubleArray { base, check, codes }
     }
 
+    pub fn wids(&self) -> impl Iterator<Item = usize> + '_ {
+        self.base
+            .iter()
+            .filter(|s| **s < 0)
+            .map(|s| as_usize(&(s * -1)))
+    }
+
     pub fn get_exact(&self, term: &str) -> Option<usize> {
         let mut s = INDEX_ROOT;
         for c in term.chars() {

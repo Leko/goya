@@ -1,9 +1,13 @@
+use crate::morpheme::Morpheme;
+use crate::word_set::WordSurface;
+
 use super::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use super::ipadic::IPADic;
-use super::morpheme::Morpheme;
+use super::word_set::WordSet;
 use encoding_rs::EUC_JP;
 use glob::glob;
 use regex::Regex;
+use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::path::Path;
@@ -15,7 +19,48 @@ const COL_LEFT_CONTEXT_ID: usize = 1; // 左文脈ID
 const COL_RIGHT_CONTEXT_ID: usize = 2; // 右文脈ID
 const COL_COST: usize = 3; // コスト
 
-pub fn load(dir: &str) -> Result<IPADic, Box<dyn Error>> {
+#[derive(Debug, Clone, Deserialize)]
+struct CSVRow {
+    /// 表層形
+    /// https://taku910.github.io/mecab/dic-detail.html
+    surface_form: String,
+    /// 左文脈ID (単語を左から見たときの文脈 ID)
+    /// https://taku910.github.io/mecab/dic-detail.html
+    left_context_id: usize,
+    /// 右文脈ID (単語を右から見たときの文脈 ID)
+    /// https://taku910.github.io/mecab/dic-detail.html
+    right_context_id: usize,
+    /// 単語コスト (小さいほど出現しやすい)
+    /// コスト値は short int (16bit 整数) の範囲におさめる必要があります.
+    cost: i16,
+    /// 5カラム目以降は, ユーザ定義の CSV フィールドです. 基本的に どんな内容でも CSV の許す限り追加することができます.
+    /// https://taku910.github.io/mecab/dic-detail.html
+    features: Vec<String>,
+}
+impl From<CSVRow> for Morpheme {
+    fn from(row: CSVRow) -> Self {
+        Morpheme {
+            left_context_id: row.left_context_id,
+            right_context_id: row.right_context_id,
+            cost: row.cost,
+        }
+    }
+}
+impl From<CSVRow> for WordSurface {
+    fn from(row: CSVRow) -> Self {
+        WordSurface {
+            surface_form: row.surface_form,
+            features: row.features,
+        }
+    }
+}
+
+pub struct LoadResult {
+    pub ipadic: IPADic,
+    pub word_set: WordSet,
+}
+
+pub fn load(dir: &str) -> Result<LoadResult, Box<dyn Error>> {
     let classes = load_chars(Path::new(dir).join("char.def"))?;
     let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
     let unknown = load_unknown(Path::new(dir).join("unk.def"))?;
@@ -23,16 +68,22 @@ pub fn load(dir: &str) -> Result<IPADic, Box<dyn Error>> {
     let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
 
     let mut vocabulary = HashMap::new();
-    let mut homonyms = HashMap::new();
-    let mut id = 1;
+    let mut tmp_homonyms = HashMap::new();
+    let mut id: usize = 1;
     for path in glob(csv_pattern)? {
         for word in load_words_csv(path?)? {
-            homonyms
+            tmp_homonyms
                 .entry(word.surface_form.to_string())
                 .or_insert_with(Vec::new)
                 .push(id);
             vocabulary.insert(id, word);
             id += 1;
+        }
+    }
+    let mut homonyms: HashMap<usize, Vec<usize>> = HashMap::new();
+    for wids in tmp_homonyms.values() {
+        for wid in wids.iter() {
+            homonyms.insert(*wid, wids.iter().copied().collect());
         }
     }
 
@@ -49,17 +100,35 @@ pub fn load(dir: &str) -> Result<IPADic, Box<dyn Error>> {
             id += 1;
         }
     }
-    Ok(IPADic::from(
-        vocabulary,
+    let word_set = WordSet {
+        known: vocabulary
+            .iter()
+            .map(|(wid, row)| (*wid, row.clone().into()))
+            .collect(),
+        unknown: unknown_vocabulary
+            .iter()
+            .map(|(wid, row)| (*wid, row.clone().into()))
+            .collect(),
+    };
+    let ipadic = IPADic::from(
+        vocabulary
+            .iter()
+            .map(|(wid, row)| (*wid, row.clone().into()))
+            .collect(),
         homonyms,
         classes,
         matrix,
         unknown_classes,
-        unknown_vocabulary,
-    ))
+        unknown_vocabulary
+            .iter()
+            .map(|(wid, row)| (*wid, row.clone().into()))
+            .collect(),
+    );
+    let ret = LoadResult { word_set, ipadic };
+    Ok(ret)
 }
 
-fn load_words_csv<P>(path: P) -> Result<Vec<Morpheme>, Box<dyn Error>>
+fn load_words_csv<P>(path: P) -> Result<Vec<CSVRow>, Box<dyn Error>>
 where
     P: AsRef<Path>,
 {
@@ -69,16 +138,17 @@ where
     let mut words = vec![];
     for row in rdr.records() {
         let row = row?;
-        words.push(Morpheme::new(
-            row[COL_SURFACE_FORM].to_string(),
-            row[COL_LEFT_CONTEXT_ID].parse::<usize>().unwrap(),
-            row[COL_RIGHT_CONTEXT_ID].parse::<usize>().unwrap(),
-            row[COL_COST].parse::<i16>().unwrap(),
-            row.iter()
+        words.push(CSVRow {
+            surface_form: row[COL_SURFACE_FORM].to_string(),
+            left_context_id: row[COL_LEFT_CONTEXT_ID].parse::<usize>().unwrap(),
+            right_context_id: row[COL_RIGHT_CONTEXT_ID].parse::<usize>().unwrap(),
+            cost: row[COL_COST].parse::<i16>().unwrap(),
+            features: row
+                .iter()
                 .skip(COL_COST + 1)
                 .map(|v| v.to_string())
                 .collect::<Vec<_>>(),
-        ))
+        })
     }
     Ok(words)
 }
@@ -177,12 +247,12 @@ where
     Ok(matrix)
 }
 
-fn load_unknown<P>(path: P) -> Result<HashMap<String, Vec<Morpheme>>, Box<dyn Error>>
+fn load_unknown<P>(path: P) -> Result<HashMap<String, Vec<CSVRow>>, Box<dyn Error>>
 where
     P: AsRef<Path>,
 {
     let words = load_words_csv(path)?;
-    let mut map = HashMap::<String, Vec<Morpheme>>::new();
+    let mut map = HashMap::<String, Vec<CSVRow>>::new();
     for w in words.into_iter() {
         map.entry(w.surface_form.to_string())
             .or_insert_with(Vec::new)

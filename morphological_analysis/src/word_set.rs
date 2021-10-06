@@ -1,14 +1,15 @@
-use super::id::ID;
+use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordSet {
-    known: Vec<Word>,
-    unknown: Vec<Word>,
+    pub known: HashMap<usize, WordSurface>,
+    pub unknown: HashMap<usize, WordSurface>,
 }
 impl WordSet {}
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize,
-)]
+#[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordSurface {
     /// 表層形
     /// https://taku910.github.io/mecab/dic-detail.html
@@ -23,10 +24,5 @@ impl WordSurface {
             surface_form: surface_form.into(),
             features,
         }
-    }
-
-    // FIXME: Depends on IPADic
-    pub fn pos(&self) -> Option<&String> {
-        self.features.get(META_POS)
     }
 }

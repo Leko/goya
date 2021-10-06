@@ -7,14 +7,17 @@ import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import type { Stats } from "./MorphologicalAnalysis.worker";
+import { Typography } from "@mui/material";
 
 enum ResultTab {
+  Wakachi = "Wakachi",
   Table = "Table",
   Dot = "Dot",
 }
 
 type Props = {
   dot?: string;
+  wakachi?: string[];
   best?: unknown[] | null;
   stats?: Stats;
 };
@@ -23,8 +26,8 @@ const Table = lazy(() => import(/* webpackChunkName: "table" */ "./Table"));
 const Dot = lazy(() => import(/* webpackChunkName: "dot" */ "./Dot"));
 
 export function Result(props: Props) {
-  const { dot, best, stats } = props;
-  const [tab, setTab] = useState(ResultTab.Table);
+  const { dot, wakachi, best, stats } = props;
+  const [tab, setTab] = useState(ResultTab.Wakachi);
 
   const handleChangeTab = (_: unknown, newValue: ResultTab) => {
     setTab(newValue);
@@ -50,9 +53,13 @@ export function Result(props: Props) {
       </Box>
       <TabContext value={tab}>
         <TabList onChange={handleChangeTab} aria-label="解析結果">
+          <Tab label="分かち書き" value={ResultTab.Wakachi} disabled={!best} />
           <Tab label="形態素" value={ResultTab.Table} disabled={!best} />
           <Tab label="ラティス" value={ResultTab.Dot} disabled={!best} />
         </TabList>
+        <TabPanel value={ResultTab.Wakachi}>
+          <Typography>{wakachi?.join("/")}</Typography>
+        </TabPanel>
         <TabPanel value={ResultTab.Table}>
           <Suspense fallback={null}>
             <Table rows={best ?? ([] as any[])} />

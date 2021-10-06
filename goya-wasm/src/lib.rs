@@ -2,8 +2,8 @@ use morphological_analysis::dot;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::{IPADic, WordIdentifier};
 use morphological_analysis::lattice::Lattice;
-use morphological_analysis::morpheme::Morpheme;
 use rkyv::{archived_root, Deserialize, Infallible};
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[macro_use]
@@ -22,34 +22,56 @@ lazy_static! {
     };
 }
 
+#[derive(Serialize)]
+pub struct WasmMorpheme {
+    surface_form: String,
+    left_context_id: usize,
+    right_context_id: usize,
+    cost: i16,
+}
+impl WasmMorpheme {}
+
 #[wasm_bindgen]
 pub struct WasmLattice {
     lattice: Lattice,
 }
-
 #[wasm_bindgen]
 impl WasmLattice {
     pub fn as_dot(&self) -> String {
         dot::render(&self.lattice, &IPADIC).unwrap()
     }
 
-    pub fn find_best(&self) -> String {
-        let mut best = vec![];
-        if let Some(path) = self.lattice.find_best() {
-            for wid in path.into_iter() {
-                let word = IPADIC.get_word(&wid).unwrap();
-                if let WordIdentifier::Unknown(_, surface_form) = wid {
-                    let actual = Morpheme {
-                        surface_form,
-                        ..word.clone()
+    pub fn wakachi(&self) -> Vec<JsValue> {
+        self.best_morphemes()
+            .map(|morpheme| JsValue::from_str(&morpheme.surface_form))
+            .collect()
+    }
+
+    pub fn find_best(&self) -> Vec<JsValue> {
+        self.best_morphemes()
+            .map(|morpheme| JsValue::from_serde(&morpheme).unwrap())
+            .collect()
+    }
+
+    fn best_morphemes(&self) -> impl Iterator<Item = WasmMorpheme> + '_ {
+        self.lattice
+            .find_best()
+            .map(|path| {
+                path.into_iter().map(|wid| {
+                    let morpheme = IPADIC.get_word(&wid).unwrap();
+                    let surface_form = match wid {
+                        WordIdentifier::Known(_, s) => s,
+                        WordIdentifier::Unknown(_, s) => s,
                     };
-                    best.push(actual);
-                } else {
-                    best.push(word.clone());
-                }
-            }
-        }
-        serde_json::to_string(&best).unwrap()
+                    WasmMorpheme {
+                        surface_form,
+                        left_context_id: morpheme.left_context_id,
+                        right_context_id: morpheme.right_context_id,
+                        cost: morpheme.cost,
+                    }
+                })
+            })
+            .unwrap()
     }
 }
 

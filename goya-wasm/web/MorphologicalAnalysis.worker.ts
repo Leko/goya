@@ -29,6 +29,7 @@ async function parse(input: ArrayBufferLike): Promise<ArrayBufferLike> {
         parse: performance.measure("parse", kParse).duration,
       },
       dot: lattice.as_dot(),
+      wakachi: lattice.wakachi(),
       best: lattice.find_best(),
     })
   );

@@ -6,6 +6,7 @@ use clap::Clap;
 use env_logger::Builder;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
+use morphological_analysis::word_set::WordSet;
 use path_util::PathUtil;
 use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;
@@ -64,11 +65,16 @@ fn main() {
 
             let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
             let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
-            let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
+            let ipadic = archived.deserialize(&mut Infallible).unwrap();
 
-            repl::start(&da, &ipadic).unwrap();
+            let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
+            let archived = unsafe { archived_root::<WordSet>(&encoded[..]) };
+            let word_set = archived.deserialize(&mut Infallible).unwrap();
+
+            repl::start(&da, &ipadic, &word_set).unwrap();
             std::thread::spawn(move || drop(ipadic));
             std::thread::spawn(move || drop(da));
+            std::thread::spawn(move || drop(word_set));
         }
     }
 }

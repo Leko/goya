@@ -21,4 +21,8 @@ impl PathUtil {
     pub fn dict_path(&self) -> PathBuf {
         Path::new(&self.base).join("dict.bin")
     }
+
+    pub fn features_path(&self) -> PathBuf {
+        Path::new(&self.base).join("features.bin")
+    }
 }
