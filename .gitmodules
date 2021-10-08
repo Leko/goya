@@ -1,3 +1,0 @@
-[submodule "mecab"]
-	path = mecab
-	url = https://github.com/taku910/mecab.git
