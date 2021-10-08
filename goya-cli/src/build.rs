@@ -74,7 +74,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     let mut serializer = AllocSerializer::<256>::default();
     serializer.serialize_value(&word_set).unwrap();
     let bytes = serializer.into_serializer().into_inner();
-    fs::write(util.features_path(), &bytes).expect("Failed to write dictionary");
+    fs::write(util.features_path(), &bytes).expect("Failed to write word features");
     eprintln!("Word features stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
