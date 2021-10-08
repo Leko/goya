@@ -66,23 +66,20 @@ impl Lattice {
                         let c = text.chars().nth(j).unwrap();
                         match da.transition(cursor as usize, c) {
                             Ok((next, _)) => {
-                                match da.stop(next as usize) {
-                                    Ok(wid) => {
-                                        open_indices.push_back(j + 1);
-                                        for wid in dict.resolve_homonyms(wid).unwrap().iter() {
-                                            indices[index].push((
-                                                WordIdentifier::Known(
-                                                    *wid,
-                                                    text.chars()
-                                                        .skip(index)
-                                                        .take(j + 1 - index)
-                                                        .collect(),
-                                                ),
-                                                j + 1 - index,
-                                            ));
-                                        }
+                                if let Ok(wid) = da.stop(next as usize) {
+                                    open_indices.push_back(j + 1);
+                                    for wid in dict.resolve_homonyms(wid).unwrap().iter() {
+                                        indices[index].push((
+                                            WordIdentifier::Known(
+                                                *wid,
+                                                text.chars()
+                                                    .skip(index)
+                                                    .take(j + 1 - index)
+                                                    .collect(),
+                                            ),
+                                            j + 1 - index,
+                                        ));
                                     }
-                                    Err(_) => {}
                                 }
                                 cursor = next;
                             }
