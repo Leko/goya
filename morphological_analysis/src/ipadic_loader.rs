@@ -100,16 +100,16 @@ pub fn load(dir: &str) -> Result<LoadResult, Box<dyn Error>> {
             id += 1;
         }
     }
-    let word_set = WordSet {
-        known: vocabulary
+    let word_set = WordSet::new(
+        vocabulary
             .iter()
             .map(|(wid, row)| (*wid, row.clone().into()))
             .collect(),
-        unknown: unknown_vocabulary
+        unknown_vocabulary
             .iter()
             .map(|(wid, row)| (*wid, row.clone().into()))
             .collect(),
-    };
+    );
     let ipadic = IPADic::from(
         vocabulary
             .iter()

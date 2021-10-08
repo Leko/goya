@@ -3,14 +3,12 @@ mod path_util;
 mod repl;
 
 use clap::Clap;
-use env_logger::Builder;
 use morphological_analysis::double_array::DoubleArray;
 use morphological_analysis::ipadic::IPADic;
 use morphological_analysis::word_set::WordSet;
 use path_util::PathUtil;
 use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;
-use std::io::Write;
 
 #[derive(Clap)]
 struct Opts {
@@ -35,11 +33,6 @@ struct Compile {
 }
 
 fn main() {
-    let mut log_builder = Builder::from_default_env();
-    log_builder
-        .format(|buf, record| writeln!(buf, "{} {}", record.level(), record.args()))
-        .init();
-
     let opts: Opts = Opts::parse();
     let base_dir = dirs::home_dir().unwrap().join(".goya");
     let dicdir = opts
@@ -71,7 +64,12 @@ fn main() {
             let archived = unsafe { archived_root::<WordSet>(&encoded[..]) };
             let word_set = archived.deserialize(&mut Infallible).unwrap();
 
-            repl::start(&da, &ipadic, &word_set).unwrap();
+            repl::start(repl::ReplOption {
+                da: &da,
+                dict: &ipadic,
+                word_set: &word_set,
+            })
+            .unwrap();
             std::thread::spawn(move || drop(ipadic));
             std::thread::spawn(move || drop(da));
             std::thread::spawn(move || drop(word_set));

@@ -33,7 +33,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         PAPER
     );
     let mut cpt = CommonPrefixTree::default();
-    for (id, word) in word_set.known.iter() {
+    for (id, word) in word_set.known_words() {
         cpt.append(*id, &word.surface_form);
     }
 

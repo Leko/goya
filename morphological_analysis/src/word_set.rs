@@ -4,10 +4,29 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordSet {
-    pub known: HashMap<usize, WordSurface>,
-    pub unknown: HashMap<usize, WordSurface>,
+    known: HashMap<usize, WordSurface>,
+    unknown: HashMap<usize, WordSurface>,
 }
-impl WordSet {}
+impl WordSet {
+    pub fn new(
+        known: HashMap<usize, WordSurface>,
+        unknown: HashMap<usize, WordSurface>,
+    ) -> WordSet {
+        WordSet { known, unknown }
+    }
+
+    pub fn get_known(&self, wid: &usize) -> Option<&WordSurface> {
+        self.known.get(wid)
+    }
+
+    pub fn get_unknown(&self, wid: &usize) -> Option<&WordSurface> {
+        self.unknown.get(wid)
+    }
+
+    pub fn known_words(&self) -> impl Iterator<Item = (&usize, &WordSurface)> {
+        self.known.iter()
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordSurface {
