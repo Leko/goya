@@ -2,7 +2,7 @@ use super::ipadic::IPADic;
 use csv::ReaderBuilder;
 use encoding_rs::EUC_JP;
 use glob::glob;
-use goya::char_class::{CharClassifier, CharDefinition, InvokeTiming};
+use goya::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use goya::morpheme::Morpheme;
 use goya::word_features::WordFeaturesMap;
 use regex::Regex;
@@ -172,7 +172,7 @@ where
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         !parts[0].starts_with("0x")
     });
-    let mut defs = HashMap::new();
+    let mut chars = HashMap::new();
     for line in head {
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         let kind = parts[0].to_owned();
@@ -184,10 +184,9 @@ where
         };
         let group_by_same_kind = parts[2] == "1";
         let len = parts[3].parse::<usize>()?;
-        defs.insert(
+        chars.insert(
             kind,
             CharDefinition {
-                range: (0, 0),
                 class,
                 timing,
                 group_by_same_kind,
@@ -201,6 +200,7 @@ where
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         !parts[0].starts_with("0x")
     });
+    let mut ranges = vec![];
     for line in tail {
         let parts = line.trim().split_ascii_whitespace().collect::<Vec<_>>();
         let range = parts[0]
@@ -219,15 +219,11 @@ where
             .skip(2)
             .map(|s| s.to_string())
             .collect::<HashSet<_>>();
-        defs.get_mut(class).unwrap().compatibilities = compatibilities;
-        defs.get_mut(class).unwrap().range = range;
+        chars.get_mut(class).unwrap().compatibilities = compatibilities;
+        ranges.push(CharClass::from(range, class.to_string()));
     }
 
-    let default_def = defs.get("DEFAULT").unwrap().clone();
-    Ok(CharClassifier::from(
-        defs.into_values().collect(),
-        default_def,
-    ))
+    Ok(CharClassifier::from(chars, ranges))
 }
 
 fn load_matrix<P>(path: P) -> Result<Vec<Vec<i16>>, Box<dyn Error>>
