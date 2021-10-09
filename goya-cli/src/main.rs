@@ -7,6 +7,7 @@ use goya::double_array::DoubleArray;
 use goya::ipadic::IPADic;
 use goya::word_set::WordSet;
 use path_util::PathUtil;
+use repl::Format;
 use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;
 
@@ -15,6 +16,8 @@ struct Opts {
     /// `~/.goya/dict` by default
     #[clap(short, long)]
     dicdir: Option<String>,
+    #[clap(short, long, default_value = "plain")]
+    format: Format,
     #[clap(subcommand)]
     subcmd: Option<SubCommand>,
 }
@@ -64,10 +67,11 @@ fn main() {
             let archived = unsafe { archived_root::<WordSet>(&encoded[..]) };
             let word_set = archived.deserialize(&mut Infallible).unwrap();
 
-            repl::start(repl::ReplOption {
+            repl::start(repl::ReplContext {
                 da: &da,
                 dict: &ipadic,
                 word_set: &word_set,
+                format: opts.format,
             })
             .unwrap();
             std::thread::spawn(move || drop(ipadic));
