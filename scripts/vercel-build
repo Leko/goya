@@ -4,7 +4,7 @@ set -eu
 source $HOME/.cargo/env 
 
 NAME='mecab-ipadic.tar.gz'
-wget 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -O $NAME
+curl 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -o $NAME
 tar -zxvf $NAME
 rm -rf $NAME
 
