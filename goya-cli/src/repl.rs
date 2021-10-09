@@ -54,7 +54,16 @@ pub fn start(opt: ReplContext) -> Result<(), std::io::Error> {
                                         (surface_form, opt.word_set.get_known(&id).unwrap())
                                     }
                                 };
-                                writeln!(out, "{}\t{}", surface_form, features.join(","))?;
+                                writeln!(
+                                    out,
+                                    "{}\t{}",
+                                    surface_form,
+                                    features
+                                        .into_iter()
+                                        .map(|f| f.to_string())
+                                        .collect::<Vec<_>>()
+                                        .join(",")
+                                )?;
                             }
                             writeln!(out, "EOS")?;
                             out.flush()?;

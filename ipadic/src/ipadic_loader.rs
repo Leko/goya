@@ -3,7 +3,7 @@ use encoding_rs::EUC_JP;
 use glob::glob;
 use goya::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use goya::morpheme::Morpheme;
-use goya::word_features::{WordFeatures, WordFeaturesMap};
+use goya::word_features::WordFeaturesMap;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -70,11 +70,11 @@ impl IPADicLoader {
         let word_set = WordFeaturesMap::new(
             vocabulary
                 .iter()
-                .map(|(wid, row)| (*wid, row.clone().into()))
+                .map(|(wid, row)| (*wid, row.features.clone()))
                 .collect(),
             unknown_vocabulary
                 .iter()
-                .map(|(wid, row)| (*wid, row.clone().into()))
+                .map(|(wid, row)| (*wid, row.features.clone()))
                 .collect(),
         );
         let ipadic = IPADic::from(
@@ -125,11 +125,6 @@ impl From<CSVRow> for Morpheme {
             right_context_id: row.right_context_id,
             cost: row.cost,
         }
-    }
-}
-impl From<CSVRow> for WordFeatures {
-    fn from(row: CSVRow) -> Self {
-        WordFeatures::new(row.features)
     }
 }
 
