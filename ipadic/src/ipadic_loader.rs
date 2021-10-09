@@ -1,4 +1,5 @@
 use super::ipadic::IPADic;
+use csv::ReaderBuilder;
 use encoding_rs::EUC_JP;
 use glob::glob;
 use goya::char_class::{CharClassifier, CharDefinition, InvokeTiming};
@@ -134,7 +135,9 @@ where
 {
     let eucjp = fs::read(path)?;
     let (utf8, _, _) = EUC_JP.decode(&eucjp);
-    let mut rdr = csv::Reader::from_reader(utf8.as_bytes());
+    let mut rdr = ReaderBuilder::new()
+        .has_headers(false)
+        .from_reader(utf8.as_bytes());
     let mut words = vec![];
     for row in rdr.records() {
         let row = row?;
