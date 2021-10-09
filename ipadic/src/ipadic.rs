@@ -1,7 +1,7 @@
-use super::char_class::CharClassifier;
-use super::char_class::CharDefinition;
-use super::dictionary::Dictionary;
-use super::morpheme::Morpheme;
+use goya::char_class::CharClassifier;
+use goya::char_class::CharDefinition;
+use goya::dictionary::Dictionary;
+use goya::morpheme::Morpheme;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;

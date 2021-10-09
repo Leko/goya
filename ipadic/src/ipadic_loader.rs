@@ -1,10 +1,10 @@
-use super::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use super::ipadic::IPADic;
-use super::morpheme::Morpheme;
-use super::word_set::WordSet;
-use super::word_set::WordSurface;
 use encoding_rs::EUC_JP;
 use glob::glob;
+use goya::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
+use goya::morpheme::Morpheme;
+use goya::word_set::WordSet;
+use goya::word_set::WordSurface;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};

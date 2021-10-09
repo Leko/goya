@@ -4,8 +4,6 @@ pub mod dictionary;
 pub mod dot;
 pub mod double_array;
 pub mod id;
-pub mod ipadic;
-pub mod ipadic_loader;
 pub mod lattice;
 pub mod morpheme;
 pub mod word_set;

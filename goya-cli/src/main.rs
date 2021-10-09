@@ -4,8 +4,8 @@ mod repl;
 
 use clap::Clap;
 use goya::double_array::DoubleArray;
-use goya::ipadic::IPADic;
 use goya::word_set::WordSet;
+use goya_ipadic::ipadic::IPADic;
 use path_util::PathUtil;
 use repl::Format;
 use rkyv::{archived_root, Deserialize, Infallible};

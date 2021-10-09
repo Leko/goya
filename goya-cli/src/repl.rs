@@ -1,9 +1,9 @@
 use goya::dot;
 use goya::double_array::DoubleArray;
 use goya::id::WordIdentifier;
-use goya::ipadic::IPADic;
 use goya::lattice::Lattice;
 use goya::word_set::WordSet;
+use goya_ipadic::ipadic::IPADic;
 use std::io::{stdin, stdout, BufRead, BufWriter, Write};
 use std::str::FromStr;
 
