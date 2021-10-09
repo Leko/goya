@@ -6,6 +6,7 @@ authors = ["Leko <leko.noor@gmail.com>"]
 description = "WebAssembly port of Goya"
 repository = "https://github.com/Leko/goya"
 license = "MIT"
+categories = ["wasm", "data-structures", "text-processing"]
 
 [lib]
 crate-type = ["cdylib"]

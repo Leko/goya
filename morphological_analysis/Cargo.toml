@@ -1,19 +1,20 @@
 [package]
-name = "morphological_analysis"
-version = "0.1.0"
-edition = "2018"
 authors = ["Leko <leko.noor@gmail.com>"]
+categories = ["data-structures", "text-processing"]
 description = "Yet another morphological analyzer for Rust and WebAssembly"
-repository = "https://github.com/Leko/goya"
+edition = "2018"
 license = "MIT"
+name = "morphological_analysis"
+repository = "https://github.com/Leko/goya"
+version = "0.1.0"
 
 [dependencies]
 csv = "1.1"
 encoding_rs = "0.8"
 glob = "0.3"
+indexmap = {version = "1.7", features = ["serde"]}
 itertools = "0.10"
-indexmap = { version = "1.7", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_bytes = "0.11"
 regex = "1.5"
-rkyv = { git = "https://github.com/rkyv/rkyv", tag = "v0.7.19", features = ["indexmap"] }
+rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19", features = ["indexmap"]}
+serde = {version = "1.0", features = ["derive"]}
+serde_bytes = "0.11"

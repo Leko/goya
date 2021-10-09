@@ -3,9 +3,10 @@
 members = [
   "goya-cli",
   "morphological_analysis",
-  "dictionary",
+  "ipadic",
   "goya-wasm",
 ]
 
 [profile.release]
 debug = true
+lto = true
