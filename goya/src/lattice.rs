@@ -1,6 +1,7 @@
 use super::char_class::{CharDefinition, InvokeTiming};
 use super::double_array::DoubleArray;
-use super::ipadic::{IPADic, WordIdentifier};
+use super::id::WordIdentifier;
+use super::ipadic::IPADic;
 use std::collections::{HashSet, VecDeque};
 
 pub const BOS_CONTEXT_ID: usize = 0;

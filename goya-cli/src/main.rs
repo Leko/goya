@@ -3,9 +3,9 @@ mod path_util;
 mod repl;
 
 use clap::Clap;
-use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::ipadic::IPADic;
-use morphological_analysis::word_set::WordSet;
+use goya::double_array::DoubleArray;
+use goya::ipadic::IPADic;
+use goya::word_set::WordSet;
 use path_util::PathUtil;
 use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;

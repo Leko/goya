@@ -20,7 +20,7 @@ export default function Table(props: Props) {
     { field: "feature_7", headerName: "読み", ...base },
     { field: "feature_8", headerName: "発音", ...base },
   ];
-  // See morphological_analysis/src/vocabulary.rs
+  // See goya/src/vocabulary.rs
   const rows = props.rows.map((word, i) => ({
     id: i,
     ...word,

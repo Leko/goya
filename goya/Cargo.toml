@@ -4,7 +4,7 @@ categories = ["data-structures", "text-processing"]
 description = "Yet another morphological analyzer for Rust and WebAssembly"
 edition = "2018"
 license = "MIT"
-name = "morphological_analysis"
+name = "goya"
 repository = "https://github.com/Leko/goya"
 version = "0.1.0"
 

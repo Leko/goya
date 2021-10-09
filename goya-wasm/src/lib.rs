@@ -1,7 +1,8 @@
-use morphological_analysis::dot;
-use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::ipadic::{IPADic, WordIdentifier};
-use morphological_analysis::lattice::Lattice;
+use goya::dot;
+use goya::double_array::DoubleArray;
+use goya::id::WordIdentifier;
+use goya::ipadic::IPADic;
+use goya::lattice::Lattice;
 use rkyv::{archived_root, Deserialize, Infallible};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;

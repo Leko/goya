@@ -1,4 +1,5 @@
 use super::char_class::CharClassifier;
+use super::id::WordIdentifier;
 use super::morpheme::Morpheme;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -7,21 +8,6 @@ use std::vec::Vec;
 
 // TODO: Make it newtype idiom
 type MorphemeId = usize;
-
-#[derive(Debug, Clone)]
-pub enum WordIdentifier {
-    Known(MorphemeId, String),   // ID, surface_form
-    Unknown(MorphemeId, String), // ID, surface_form
-}
-impl WordIdentifier {
-    pub fn get_surface(&self) -> &str {
-        match self {
-            Self::Known(_, surface) => surface,
-            Self::Unknown(_, surface) => surface,
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct IPADic {
     pub vocabulary: HashMap<usize, Morpheme>,

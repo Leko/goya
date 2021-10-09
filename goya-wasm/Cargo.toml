@@ -1,19 +1,19 @@
 [package]
-name = "goya-wasm"
-version = "0.1.0"
-edition = "2018"
 authors = ["Leko <leko.noor@gmail.com>"]
-description = "WebAssembly port of Goya"
-repository = "https://github.com/Leko/goya"
-license = "MIT"
 categories = ["wasm", "data-structures", "text-processing"]
+description = "WebAssembly binding of Goya"
+edition = "2018"
+license = "MIT"
+name = "goya-wasm"
+repository = "https://github.com/Leko/goya"
+version = "0.1.0"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-morphological_analysis = { path = "../morphological_analysis" }
-wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
 lazy_static = "1.4"
-rkyv = { git = "https://github.com/rkyv/rkyv", tag = "v0.7.19" }
+goya = {path = "../goya"}
+rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19"}
+serde = {version = "1.0", features = ["derive"]}
+wasm-bindgen = {version = "0.2.78", features = ["serde-serialize"]}

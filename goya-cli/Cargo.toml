@@ -1,17 +1,21 @@
 [package]
 authors = ["Leko <leko.noor@gmail.com>"]
 categories = ["command-line-interface"]
-description = "CLI command to run Goya"
+description = "CLI for Goya"
 edition = "2018"
 license = "MIT"
-name = "goya"
+name = "goya-cli"
 repository = "https://github.com/Leko/goya"
 version = "0.1.0"
+
+[[bin]]
+name = "goya"
+path = "src/main.rs"
 
 [dependencies]
 bytesize = {version = "1.1.0", features = ["serde"]}
 clap = "3.0.0-beta.4"
 console = "0.14"
 dirs = "4.0"
-morphological_analysis = {path = "../morphological_analysis"}
+goya = {path = "../goya"}
 rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19"}

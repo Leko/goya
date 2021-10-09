@@ -1,9 +1,9 @@
 use super::path_util::PathUtil;
 use bytesize::ByteSize;
 use console::{style, Emoji};
-use morphological_analysis::common_prefix_tree::CommonPrefixTree;
-use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::ipadic_loader::load;
+use goya::common_prefix_tree::CommonPrefixTree;
+use goya::double_array::DoubleArray;
+use goya::ipadic_loader::load;
 use rkyv::ser::{serializers::AllocSerializer, Serializer};
 use std::error::Error;
 use std::fs;

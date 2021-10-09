@@ -1,8 +1,9 @@
-use morphological_analysis::dot;
-use morphological_analysis::double_array::DoubleArray;
-use morphological_analysis::ipadic::{IPADic, WordIdentifier};
-use morphological_analysis::lattice::Lattice;
-use morphological_analysis::word_set::WordSet;
+use goya::dot;
+use goya::double_array::DoubleArray;
+use goya::id::WordIdentifier;
+use goya::ipadic::IPADic;
+use goya::lattice::Lattice;
+use goya::word_set::WordSet;
 use std::io::{stdin, stdout, BufRead, BufWriter, Write};
 
 pub struct ReplOption<'a> {
