@@ -32,6 +32,7 @@ lazy_static! {
 
 #[derive(Serialize)]
 pub struct WasmMorpheme {
+    is_known: bool,
     surface_form: String,
     left_context_id: usize,
     right_context_id: usize,
@@ -74,11 +75,12 @@ impl WasmLattice {
                         .iter()
                         .map(|s| s.to_string())
                         .collect();
-                    let surface_form = match wid {
-                        WordIdentifier::Known(_, s) => s,
-                        WordIdentifier::Unknown(_, s) => s,
+                    let (surface_form, is_known) = match wid {
+                        WordIdentifier::Known(_, s) => (s, true),
+                        WordIdentifier::Unknown(_, s) => (s, false),
                     };
                     WasmMorpheme {
+                        is_known,
                         surface_form,
                         features,
                         left_context_id: morpheme.left_context_id,

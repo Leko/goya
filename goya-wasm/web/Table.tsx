@@ -10,6 +10,7 @@ const base = { flex: 1, sortable: false };
 export default function Table(props: Props) {
   const columns = [
     { field: "surface_form", headerName: "表層形", ...base },
+    { field: "is_known", headerName: "既知語", ...base },
     { field: "feature_0", headerName: "品詞", ...base },
     { field: "feature_1", headerName: "品詞細分類1", ...base },
     { field: "feature_2", headerName: "品詞細分類2", ...base },
