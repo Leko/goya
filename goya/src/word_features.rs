@@ -3,33 +3,33 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-pub struct WordSet {
-    known: HashMap<usize, WordSurface>,
-    unknown: HashMap<usize, WordSurface>,
+pub struct WordFeaturesMap {
+    known: HashMap<usize, WordFeatures>,
+    unknown: HashMap<usize, WordFeatures>,
 }
-impl WordSet {
+impl WordFeaturesMap {
     pub fn new(
-        known: HashMap<usize, WordSurface>,
-        unknown: HashMap<usize, WordSurface>,
-    ) -> WordSet {
-        WordSet { known, unknown }
+        known: HashMap<usize, WordFeatures>,
+        unknown: HashMap<usize, WordFeatures>,
+    ) -> WordFeaturesMap {
+        WordFeaturesMap { known, unknown }
     }
 
-    pub fn get_known(&self, wid: &usize) -> Option<&WordSurface> {
+    pub fn get_known(&self, wid: &usize) -> Option<&WordFeatures> {
         self.known.get(wid)
     }
 
-    pub fn get_unknown(&self, wid: &usize) -> Option<&WordSurface> {
+    pub fn get_unknown(&self, wid: &usize) -> Option<&WordFeatures> {
         self.unknown.get(wid)
     }
 
-    pub fn known_words(&self) -> impl Iterator<Item = (&usize, &WordSurface)> {
+    pub fn known_words(&self) -> impl Iterator<Item = (&usize, &WordFeatures)> {
         self.known.iter()
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-pub struct WordSurface {
+pub struct WordFeatures {
     /// 表層形
     /// https://taku910.github.io/mecab/dic-detail.html
     pub surface_form: String,
@@ -37,9 +37,9 @@ pub struct WordSurface {
     /// > https://taku910.github.io/mecab/dic-detail.html
     pub features: Vec<String>,
 }
-impl WordSurface {
-    pub fn new(surface_form: impl Into<String>, features: Vec<String>) -> WordSurface {
-        WordSurface {
+impl WordFeatures {
+    pub fn new(surface_form: impl Into<String>, features: Vec<String>) -> WordFeatures {
+        WordFeatures {
             surface_form: surface_form.into(),
             features,
         }

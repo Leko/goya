@@ -3,8 +3,7 @@ use encoding_rs::EUC_JP;
 use glob::glob;
 use goya::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use goya::morpheme::Morpheme;
-use goya::word_set::WordSet;
-use goya::word_set::WordSurface;
+use goya::word_features::{WordFeatures, WordFeaturesMap};
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -20,7 +19,7 @@ const COL_COST: usize = 3; // コスト
 
 pub struct LoadResult {
     pub ipadic: IPADic,
-    pub word_set: WordSet,
+    pub word_set: WordFeaturesMap,
 }
 
 pub struct IPADicLoader {}
@@ -65,7 +64,7 @@ impl IPADicLoader {
                 id += 1;
             }
         }
-        let word_set = WordSet::new(
+        let word_set = WordFeaturesMap::new(
             vocabulary
                 .iter()
                 .map(|(wid, row)| (*wid, row.clone().into()))
@@ -121,9 +120,9 @@ impl From<CSVRow> for Morpheme {
         }
     }
 }
-impl From<CSVRow> for WordSurface {
+impl From<CSVRow> for WordFeatures {
     fn from(row: CSVRow) -> Self {
-        WordSurface {
+        WordFeatures {
             surface_form: row.surface_form,
             features: row.features,
         }

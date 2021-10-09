@@ -4,7 +4,7 @@ mod repl;
 
 use clap::Clap;
 use goya::double_array::DoubleArray;
-use goya::word_set::WordSet;
+use goya::word_features::WordFeaturesMap;
 use goya_ipadic::ipadic::IPADic;
 use path_util::PathUtil;
 use repl::Format;
@@ -64,7 +64,7 @@ fn main() {
             let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
 
             let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
-            let archived = unsafe { archived_root::<WordSet>(&encoded[..]) };
+            let archived = unsafe { archived_root::<WordFeaturesMap>(&encoded[..]) };
             let word_set = archived.deserialize(&mut Infallible).unwrap();
 
             repl::start(repl::ReplContext {

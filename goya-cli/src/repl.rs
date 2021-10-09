@@ -2,7 +2,7 @@ use goya::dot;
 use goya::double_array::DoubleArray;
 use goya::id::WordIdentifier;
 use goya::lattice::Lattice;
-use goya::word_set::WordSet;
+use goya::word_features::WordFeaturesMap;
 use goya_ipadic::ipadic::IPADic;
 use std::io::{stdin, stdout, BufRead, BufWriter, Write};
 use std::str::FromStr;
@@ -26,7 +26,7 @@ impl FromStr for Format {
 pub struct ReplContext<'a> {
     pub da: &'a DoubleArray,
     pub dict: &'a IPADic,
-    pub word_set: &'a WordSet,
+    pub word_set: &'a WordFeaturesMap,
     pub format: Format,
 }
 

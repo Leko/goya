@@ -6,4 +6,4 @@ pub mod double_array;
 pub mod id;
 pub mod lattice;
 pub mod morpheme;
-pub mod word_set;
+pub mod word_features;
