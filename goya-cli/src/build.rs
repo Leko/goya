@@ -25,9 +25,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         LOOKING_GLASS
     );
     let loader = IPADicLoader {};
-    let loaded = loader.load(src_dir)?;
-    let mut ipadic = loaded.ipadic;
-    let word_set = loaded.word_set;
+    let mut loaded = loader.load(src_dir)?;
 
     eprintln!(
         "{} {} Analyzing vocabulary...",
@@ -35,8 +33,8 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         PAPER
     );
     let mut cpt = CommonPrefixTree::default();
-    for (id, word) in word_set.known_words() {
-        cpt.append(*id, &word.surface_form);
+    for (id, surface) in loaded.surfaces.iter() {
+        cpt.append(*id, surface);
     }
 
     eprintln!(
@@ -48,7 +46,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
 
     // DoubleArray only has one ID per surface form.
     let used_wids = da.wids().collect();
-    ipadic.shrink_to_wids(&used_wids);
+    loaded.ipadic.shrink_to_wids(&used_wids);
 
     eprintln!(
         "{} {} Exporting dictionary...",
@@ -67,14 +65,16 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
     let mut serializer = AllocSerializer::<256>::default();
-    serializer.serialize_value::<IPADic>(&ipadic).unwrap();
+    serializer
+        .serialize_value::<IPADic>(&loaded.ipadic)
+        .unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.dict_path(), &bytes).expect("Failed to write dictionary");
     eprintln!("Dictionary stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
     let mut serializer = AllocSerializer::<256>::default();
-    serializer.serialize_value(&word_set).unwrap();
+    serializer.serialize_value(&loaded.word_set).unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.features_path(), &bytes).expect("Failed to write word features");
     eprintln!("Word features stats:");

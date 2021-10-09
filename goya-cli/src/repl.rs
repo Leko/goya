@@ -46,18 +46,15 @@ pub fn start(opt: ReplContext) -> Result<(), std::io::Error> {
                     Format::Plain => {
                         if let Some(path) = lattice.find_best() {
                             for wid in path.into_iter() {
-                                match wid {
+                                let (surface_form, features) = match wid {
                                     WordIdentifier::Unknown(id, surface_form) => {
-                                        let features =
-                                            &opt.word_set.get_unknown(&id).unwrap().features;
-                                        writeln!(out, "{}\t{}", surface_form, features.join(","))?;
+                                        (surface_form, opt.word_set.get_unknown(&id).unwrap())
                                     }
                                     WordIdentifier::Known(id, surface_form) => {
-                                        let features =
-                                            &opt.word_set.get_known(&id).unwrap().features;
-                                        writeln!(out, "{}\t{}", surface_form, features.join(","))?;
+                                        (surface_form, opt.word_set.get_known(&id).unwrap())
                                     }
-                                }
+                                };
+                                writeln!(out, "{}\t{}", surface_form, features.join(","))?;
                             }
                             writeln!(out, "EOS")?;
                             out.flush()?;

@@ -20,6 +20,7 @@ const COL_COST: usize = 3; // コスト
 pub struct LoadResult {
     pub ipadic: IPADic,
     pub word_set: WordFeaturesMap,
+    pub surfaces: HashMap<usize, String>,
 }
 
 pub struct IPADicLoader {}
@@ -31,11 +32,13 @@ impl IPADicLoader {
         let csv_pattern = Path::new(dir).join("*.csv");
         let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
 
+        let mut surfaces = HashMap::new();
         let mut vocabulary = HashMap::new();
         let mut tmp_homonyms = HashMap::new();
         let mut id: usize = 1;
         for path in glob(csv_pattern)? {
             for word in load_words_csv(path?)? {
+                surfaces.insert(id, word.surface_form.to_string());
                 tmp_homonyms
                     .entry(word.surface_form.to_string())
                     .or_insert_with(Vec::new)
@@ -88,7 +91,11 @@ impl IPADicLoader {
                 .map(|(wid, row)| (*wid, row.clone().into()))
                 .collect(),
         );
-        let ret = LoadResult { word_set, ipadic };
+        let ret = LoadResult {
+            word_set,
+            ipadic,
+            surfaces,
+        };
         Ok(ret)
     }
 }
@@ -122,10 +129,7 @@ impl From<CSVRow> for Morpheme {
 }
 impl From<CSVRow> for WordFeatures {
     fn from(row: CSVRow) -> Self {
-        WordFeatures {
-            surface_form: row.surface_form,
-            features: row.features,
-        }
+        WordFeatures::new(row.features)
     }
 }
 

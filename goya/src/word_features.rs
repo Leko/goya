@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordFeaturesMap {
@@ -28,20 +27,16 @@ impl WordFeaturesMap {
     }
 }
 
+/// > 5カラム目以降は, ユーザ定義の CSV フィールドです. 基本的に どんな内容でも CSV の許す限り追加することができます.
+/// > https://taku910.github.io/mecab/dic-detail.html
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-pub struct WordFeatures {
-    /// 表層形
-    /// https://taku910.github.io/mecab/dic-detail.html
-    pub surface_form: String,
-    /// > 5カラム目以降は, ユーザ定義の CSV フィールドです. 基本的に どんな内容でも CSV の許す限り追加することができます.
-    /// > https://taku910.github.io/mecab/dic-detail.html
-    pub features: Vec<String>,
-}
+pub struct WordFeatures(Vec<String>);
 impl WordFeatures {
-    pub fn new(surface_form: impl Into<String>, features: Vec<String>) -> WordFeatures {
-        WordFeatures {
-            surface_form: surface_form.into(),
-            features,
-        }
+    pub fn new(features: Vec<String>) -> WordFeatures {
+        WordFeatures(features)
+    }
+
+    pub fn join(&self, sep: &str) -> String {
+        self.0.join(sep)
     }
 }
