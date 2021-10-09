@@ -1,9 +1,8 @@
-use std::{error::Error, fmt::Write};
-
-use crate::{
+use super::{
     dictionary::Dictionary,
     lattice::{Lattice, BOS_CONTEXT_ID, EOS_CONTEXT_ID},
 };
+use std::{error::Error, fmt::Write};
 
 const BOLD: &str = " penwidth=3";
 

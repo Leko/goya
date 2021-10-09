@@ -1,8 +1,7 @@
+use super::id::WordIdentifier;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-use crate::id::WordIdentifier;
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordFeaturesMap {
