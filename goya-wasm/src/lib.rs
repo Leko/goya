@@ -92,10 +92,12 @@ impl WasmLattice {
 }
 
 #[wasm_bindgen]
-pub fn ready() {
-    lazy_static::initialize(&DOUBLE_ARRAY);
-    lazy_static::initialize(&IPADIC);
-    lazy_static::initialize(&WORD_FEATURES);
+pub async fn ready() {
+    futures::join!(
+        async { lazy_static::initialize(&WORD_FEATURES) },
+        async { lazy_static::initialize(&IPADIC) },
+        async { lazy_static::initialize(&DOUBLE_ARRAY) },
+    );
 }
 
 #[wasm_bindgen]

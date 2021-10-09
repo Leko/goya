@@ -3,6 +3,8 @@ mod path_util;
 mod repl;
 
 use clap::Clap;
+use futures::executor::block_on;
+use futures::future;
 use goya::double_array::DoubleArray;
 use goya::word_features::WordFeaturesMap;
 use goya_ipadic::ipadic::IPADic;
@@ -55,18 +57,25 @@ fn main() {
         }
         _ => {
             let util = PathUtil::from(dicdir);
-            let encoded = fs::read(util.da_path()).expect("Failed to load dictionary");
-            let archived = unsafe { archived_root::<DoubleArray>(&encoded[..]) };
-            let da = archived.deserialize(&mut Infallible).unwrap();
 
-            let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
-            let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
-            let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
+            let da_fut = async {
+                let encoded = fs::read(util.da_path()).expect("Failed to load dictionary");
+                let archived = unsafe { archived_root::<DoubleArray>(&encoded[..]) };
+                archived.deserialize(&mut Infallible).unwrap()
+            };
+            let ipadic_fut = async {
+                let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
+                let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
+                archived.deserialize(&mut Infallible).unwrap()
+            };
+            let features_fut = async {
+                let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
+                let archived = unsafe { archived_root::<WordFeaturesMap>(&encoded[..]) };
+                archived.deserialize(&mut Infallible).unwrap()
+            };
 
-            let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
-            let archived = unsafe { archived_root::<WordFeaturesMap>(&encoded[..]) };
-            let word_set = archived.deserialize(&mut Infallible).unwrap();
-
+            let (ipadic, word_set) = block_on(future::join(ipadic_fut, features_fut));
+            let da = block_on(da_fut);
             repl::start(repl::ReplContext {
                 da: &da,
                 dict: &ipadic,

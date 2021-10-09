@@ -17,7 +17,7 @@ async function parse(input: ArrayBufferLike): Promise<ArrayBufferLike> {
   performance.mark(kLoad);
   const mod = await import("../pkg");
   performance.mark(kDict);
-  mod.ready();
+  await mod.ready();
   performance.mark(kParse);
   const lattice = mod.parse(decoder.decode(input));
 
