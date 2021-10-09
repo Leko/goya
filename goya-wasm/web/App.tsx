@@ -76,10 +76,11 @@ export function App() {
       <Container>
         <Box mt={4}>
           <Typography variant="h4" component="h2" sx={{ flexGrow: 1 }}>
-            Goya: Yet another morphological analyzer for Rust and WebAssembly
+            Goya: Yet another Japanese morphological analyzer for Rust and
+            WebAssembly
           </Typography>
           <Typography variant="body1" component="p" sx={{ flexGrow: 1 }}>
-            Goya: WebAssemblyで利用可能なRust製形態素解析ライブラリ
+            Goya: WebAssemblyで利用可能な日本語の形態素解析ライブラリ
           </Typography>
         </Box>
         <Box mt={2}>
