@@ -11,10 +11,10 @@ use std::vec::Vec;
 type MorphemeId = usize;
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct IPADic {
-    pub vocabulary: HashMap<usize, Morpheme>,
+    vocabulary: HashMap<usize, Morpheme>,
     homonyms: HashMap<MorphemeId, Vec<usize>>,
     // FIXME: Remove
-    pub classes: CharClassifier,
+    classes: CharClassifier,
     matrix: Vec<Vec<i16>>,
     /// 1つのカテゴリに複数の素性を定義してもかまいません. 学習後, 適切なコスト値が 自動的に与えられます.
     /// https://taku910.github.io/mecab/learn.html#config
