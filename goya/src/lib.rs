@@ -1,5 +1,6 @@
 pub mod char_class;
 pub mod common_prefix_tree;
+pub mod dictionary;
 pub mod dot;
 pub mod double_array;
 pub mod id;

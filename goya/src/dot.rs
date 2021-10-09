@@ -1,13 +1,13 @@
 use std::{error::Error, fmt::Write};
 
 use crate::{
-    ipadic::IPADic,
+    dictionary::Dictionary,
     lattice::{Lattice, BOS_CONTEXT_ID, EOS_CONTEXT_ID},
 };
 
 const BOLD: &str = " penwidth=3";
 
-pub fn render(lattice: &Lattice, dict: &IPADic) -> Result<String, Box<dyn Error>> {
+pub fn render<D: Dictionary>(lattice: &Lattice, dict: &D) -> Result<String, Box<dyn Error>> {
     let cursor = (lattice.dp.len() - 1, 0);
     let len = lattice.indices.len();
     let best_path = lattice.find_best_path();
@@ -28,7 +28,7 @@ pub fn render(lattice: &Lattice, dict: &IPADic) -> Result<String, Box<dyn Error>
     )?;
     for (i, index) in lattice.indices.iter().enumerate() {
         for (j, (left_wid, wlen)) in index.iter().enumerate() {
-            let left = dict.get_word(left_wid).unwrap();
+            let left = dict.get(left_wid).unwrap();
             let node_style = match &best_path {
                 Some(best_path) if best_path.contains(&(i + 1, j)) => BOLD,
                 _ => "",
@@ -46,7 +46,7 @@ pub fn render(lattice: &Lattice, dict: &IPADic) -> Result<String, Box<dyn Error>
             if i == 0 {
                 let right = left;
                 let cost = dict
-                    .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
+                    .transition_cost(&BOS_CONTEXT_ID, &right.right_context_id)
                     .unwrap();
                 let bos_edge_style = match &best_path {
                     Some(best_path) if best_path.contains(&(i + 1, j)) => BOLD,
@@ -60,7 +60,7 @@ pub fn render(lattice: &Lattice, dict: &IPADic) -> Result<String, Box<dyn Error>
             }
             if i + wlen >= len {
                 let cost = dict
-                    .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
+                    .transition_cost(&left.left_context_id, &EOS_CONTEXT_ID)
                     .unwrap();
                 let eos_edge_style = match &best_path {
                     Some(best_path) if best_path.contains(&(i + 1, j)) => BOLD,
@@ -74,9 +74,9 @@ pub fn render(lattice: &Lattice, dict: &IPADic) -> Result<String, Box<dyn Error>
                 continue;
             }
             for (k, (right_wid, _)) in lattice.indices[i + wlen].iter().enumerate() {
-                let right = dict.get_word(right_wid).unwrap();
+                let right = dict.get(right_wid).unwrap();
                 let cost = dict
-                    .transition_cost(left.left_context_id, right.right_context_id)
+                    .transition_cost(&left.left_context_id, &right.right_context_id)
                     .unwrap();
                 let edge_style = match &best_path {
                     Some(best_path)

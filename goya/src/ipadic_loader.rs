@@ -1,9 +1,8 @@
-use crate::morpheme::Morpheme;
-use crate::word_set::WordSurface;
-
 use super::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use super::ipadic::IPADic;
+use super::morpheme::Morpheme;
 use super::word_set::WordSet;
+use super::word_set::WordSurface;
 use encoding_rs::EUC_JP;
 use glob::glob;
 use regex::Regex;
@@ -18,6 +17,82 @@ const COL_SURFACE_FORM: usize = 0; // 表層形
 const COL_LEFT_CONTEXT_ID: usize = 1; // 左文脈ID
 const COL_RIGHT_CONTEXT_ID: usize = 2; // 右文脈ID
 const COL_COST: usize = 3; // コスト
+
+pub struct LoadResult {
+    pub ipadic: IPADic,
+    pub word_set: WordSet,
+}
+
+pub struct IPADicLoader {}
+impl IPADicLoader {
+    pub fn load(&self, dir: &str) -> Result<LoadResult, Box<dyn Error>> {
+        let classes = load_chars(Path::new(dir).join("char.def"))?;
+        let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
+        let unknown = load_unknown(Path::new(dir).join("unk.def"))?;
+        let csv_pattern = Path::new(dir).join("*.csv");
+        let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
+
+        let mut vocabulary = HashMap::new();
+        let mut tmp_homonyms = HashMap::new();
+        let mut id: usize = 1;
+        for path in glob(csv_pattern)? {
+            for word in load_words_csv(path?)? {
+                tmp_homonyms
+                    .entry(word.surface_form.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(id);
+                vocabulary.insert(id, word);
+                id += 1;
+            }
+        }
+        let mut homonyms: HashMap<usize, Vec<usize>> = HashMap::new();
+        for wids in tmp_homonyms.values() {
+            for wid in wids.iter() {
+                homonyms.insert(*wid, wids.iter().copied().collect());
+            }
+        }
+
+        let mut unknown_vocabulary = HashMap::new();
+        let mut unknown_classes = HashMap::new();
+        let mut id = 1;
+        for (class, words) in unknown.into_iter() {
+            for word in words {
+                unknown_vocabulary.insert(id, word);
+                unknown_classes
+                    .entry(class.to_string())
+                    .or_insert_with(Vec::new)
+                    .push(id);
+                id += 1;
+            }
+        }
+        let word_set = WordSet::new(
+            vocabulary
+                .iter()
+                .map(|(wid, row)| (*wid, row.clone().into()))
+                .collect(),
+            unknown_vocabulary
+                .iter()
+                .map(|(wid, row)| (*wid, row.clone().into()))
+                .collect(),
+        );
+        let ipadic = IPADic::from(
+            vocabulary
+                .iter()
+                .map(|(wid, row)| (*wid, row.clone().into()))
+                .collect(),
+            homonyms,
+            classes,
+            matrix,
+            unknown_classes,
+            unknown_vocabulary
+                .iter()
+                .map(|(wid, row)| (*wid, row.clone().into()))
+                .collect(),
+        );
+        let ret = LoadResult { word_set, ipadic };
+        Ok(ret)
+    }
+}
 
 #[derive(Debug, Clone, Deserialize)]
 struct CSVRow {
@@ -53,79 +128,6 @@ impl From<CSVRow> for WordSurface {
             features: row.features,
         }
     }
-}
-
-pub struct LoadResult {
-    pub ipadic: IPADic,
-    pub word_set: WordSet,
-}
-
-pub fn load(dir: &str) -> Result<LoadResult, Box<dyn Error>> {
-    let classes = load_chars(Path::new(dir).join("char.def"))?;
-    let matrix = load_matrix(Path::new(dir).join("matrix.def"))?;
-    let unknown = load_unknown(Path::new(dir).join("unk.def"))?;
-    let csv_pattern = Path::new(dir).join("*.csv");
-    let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
-
-    let mut vocabulary = HashMap::new();
-    let mut tmp_homonyms = HashMap::new();
-    let mut id: usize = 1;
-    for path in glob(csv_pattern)? {
-        for word in load_words_csv(path?)? {
-            tmp_homonyms
-                .entry(word.surface_form.to_string())
-                .or_insert_with(Vec::new)
-                .push(id);
-            vocabulary.insert(id, word);
-            id += 1;
-        }
-    }
-    let mut homonyms: HashMap<usize, Vec<usize>> = HashMap::new();
-    for wids in tmp_homonyms.values() {
-        for wid in wids.iter() {
-            homonyms.insert(*wid, wids.iter().copied().collect());
-        }
-    }
-
-    let mut unknown_vocabulary = HashMap::new();
-    let mut unknown_classes = HashMap::new();
-    let mut id = 1;
-    for (class, words) in unknown.into_iter() {
-        for word in words {
-            unknown_vocabulary.insert(id, word);
-            unknown_classes
-                .entry(class.to_string())
-                .or_insert_with(Vec::new)
-                .push(id);
-            id += 1;
-        }
-    }
-    let word_set = WordSet::new(
-        vocabulary
-            .iter()
-            .map(|(wid, row)| (*wid, row.clone().into()))
-            .collect(),
-        unknown_vocabulary
-            .iter()
-            .map(|(wid, row)| (*wid, row.clone().into()))
-            .collect(),
-    );
-    let ipadic = IPADic::from(
-        vocabulary
-            .iter()
-            .map(|(wid, row)| (*wid, row.clone().into()))
-            .collect(),
-        homonyms,
-        classes,
-        matrix,
-        unknown_classes,
-        unknown_vocabulary
-            .iter()
-            .map(|(wid, row)| (*wid, row.clone().into()))
-            .collect(),
-    );
-    let ret = LoadResult { word_set, ipadic };
-    Ok(ret)
 }
 
 fn load_words_csv<P>(path: P) -> Result<Vec<CSVRow>, Box<dyn Error>>

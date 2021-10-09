@@ -129,3 +129,4 @@ dist
 .webpack/
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+mecab-ipadic-2.7.0-20070801

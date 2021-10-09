@@ -48,20 +48,6 @@ impl DoubleArray {
             .map(|s| as_usize(&(s * -1)))
     }
 
-    pub fn get_exact(&self, term: &str) -> Option<usize> {
-        let mut s = INDEX_ROOT;
-        for c in term.chars() {
-            match self.transition(s, c) {
-                Ok((next, _)) => s = next as usize,
-                _ => return None,
-            }
-        }
-        match self.stop(s) {
-            Ok(id) => Some(id),
-            _ => None,
-        }
-    }
-
     pub fn from_cpt(trie: &CommonPrefixTree) -> Self {
         let mut state_cache = HashMap::new();
         let mut da = DoubleArray::default();
@@ -140,7 +126,7 @@ impl DoubleArray {
             .get(t as usize)
             .ok_or(TransitionError::BaseFailed)?;
         let wid = if *base < 0 {
-            Some(as_usize(&(base * -1)))
+            Some((base * -1) as usize)
         } else {
             None
         };
@@ -353,32 +339,5 @@ mod tests {
         assert_eq!(da.codes, chars);
         assert_eq!(da.base, vec![0, 1, 3, -1, 0, -2]);
         assert_eq!(da.check, vec![0, 0, 1, 2, 0, 2]);
-    }
-
-    #[test]
-    fn test_get_exact() {
-        let mut trie = CommonPrefixTree::default();
-        trie.append(1, "a");
-        trie.append(2, "aa");
-        trie.append(3, "aaa");
-        trie.append(4, "aaaa");
-        trie.append(5, "aaaaa");
-        trie.append(6, "ab");
-        trie.append(7, "abc");
-        trie.append(8, "abcd");
-        trie.append(9, "abcde");
-        trie.append(10, "abcdef");
-        let da = DoubleArray::from_cpt(&trie);
-
-        assert_eq!(da.get_exact("a"), Some(1));
-        assert_eq!(da.get_exact("aa"), Some(2));
-        assert_eq!(da.get_exact("aaa"), Some(3));
-        assert_eq!(da.get_exact("aaaa"), Some(4));
-        assert_eq!(da.get_exact("aaaaa"), Some(5));
-        assert_eq!(da.get_exact("ab"), Some(6));
-        assert_eq!(da.get_exact("abc"), Some(7));
-        assert_eq!(da.get_exact("abcd"), Some(8));
-        assert_eq!(da.get_exact("abcde"), Some(9));
-        assert_eq!(da.get_exact("abcdef"), Some(10));
     }
 }

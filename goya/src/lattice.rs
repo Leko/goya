@@ -1,7 +1,7 @@
 use super::char_class::{CharDefinition, InvokeTiming};
+use super::dictionary::Dictionary;
 use super::double_array::DoubleArray;
 use super::id::WordIdentifier;
-use super::ipadic::IPADic;
 use std::collections::{HashSet, VecDeque};
 
 pub const BOS_CONTEXT_ID: usize = 0;
@@ -16,14 +16,14 @@ pub struct Lattice {
     pub dp: Vec<Vec<(i32, usize, usize)>>,
 }
 impl Lattice {
-    pub fn parse(text: &str, da: &DoubleArray, dict: &IPADic) -> Lattice {
+    pub fn parse<D: Dictionary>(text: &str, da: &DoubleArray, dict: &D) -> Lattice {
         let len = text.chars().count();
         let mut indices: Vec<Vec<(WordIdentifier, usize)>> = vec![vec![]; len];
         let mut open_indices = VecDeque::from(vec![0]);
         let mut visited = HashSet::with_capacity(len);
         let char_defs = text
             .chars()
-            .map(|c| dict.classes.classify(c))
+            .map(|c| dict.classify_char(&c))
             .collect::<Vec<&CharDefinition>>();
 
         while let Some(index) = open_indices.pop_front() {
@@ -35,9 +35,9 @@ impl Lattice {
             let c = text.chars().nth(index).unwrap();
             let def = char_defs[index];
             if let InvokeTiming::Always = def.timing {
-                let surface_form = dict.classes.take_unknown_chars(def, text, index);
+                let surface_form = dict.take_unknown_chars_seq(def, text, &index);
                 open_indices.push_back(index + surface_form.chars().count());
-                for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
+                for (wid, _) in dict.get_unknown_morphemes_by_class(&def.class) {
                     indices[index].push((
                         WordIdentifier::Unknown(wid, surface_form.to_string()),
                         surface_form.chars().count(),
@@ -50,7 +50,7 @@ impl Lattice {
                     match da.stop(cursor as usize) {
                         Ok(wid) => {
                             open_indices.push_back(index + 1);
-                            for wid in dict.resolve_homonyms(wid).unwrap().iter() {
+                            for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
                                 indices[index].push((
                                     WordIdentifier::Known(
                                         *wid,
@@ -69,7 +69,7 @@ impl Lattice {
                             Ok((next, _)) => {
                                 if let Ok(wid) = da.stop(next as usize) {
                                     open_indices.push_back(j + 1);
-                                    for wid in dict.resolve_homonyms(wid).unwrap().iter() {
+                                    for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
                                         indices[index].push((
                                             WordIdentifier::Known(
                                                 *wid,
@@ -91,9 +91,9 @@ impl Lattice {
                 }
                 Err(_) => {
                     if let InvokeTiming::Fallback = def.timing {
-                        let surface_form = dict.classes.take_unknown_chars(def, text, index);
+                        let surface_form = dict.take_unknown_chars_seq(def, text, &index);
                         open_indices.push_back(index + surface_form.chars().count());
-                        for (wid, _) in dict.get_unknown_words_by_class(&def.class) {
+                        for (wid, _) in dict.get_unknown_morphemes_by_class(&def.class) {
                             indices[index].push((
                                 WordIdentifier::Unknown(wid, surface_form.to_string()),
                                 surface_form.chars().count(),
@@ -151,9 +151,9 @@ impl Lattice {
     }
 }
 
-fn get_dp_table(
+fn get_dp_table<D: Dictionary>(
     indices: &[Vec<(WordIdentifier, usize)>],
-    dict: &IPADic,
+    dict: &D,
 ) -> Vec<Vec<(i32, usize, usize)>> {
     let len = indices.len();
     let max_num_childs = indices.iter().map(|idx| idx.len()).max().unwrap();
@@ -170,9 +170,9 @@ fn get_dp_table(
     dp[0][0] = (0, 0, 0);
 
     for (i, (right_wid, _)) in indices[0].iter().enumerate() {
-        let right = dict.get_word(right_wid).unwrap();
+        let right = dict.get(right_wid).unwrap();
         let cost = dict
-            .transition_cost(BOS_CONTEXT_ID, right.right_context_id)
+            .transition_cost(&BOS_CONTEXT_ID, &right.right_context_id)
             .unwrap()
             + right.cost;
         dp[1][i] = (cost as i32, NODE_BOS, 0);
@@ -181,10 +181,10 @@ fn get_dp_table(
     for (i, index) in indices.iter().enumerate() {
         for (j, (left_wid, wlen)) in index.iter().enumerate() {
             let before_cost = dp[i + 1][j].0;
-            let left = dict.get_word(left_wid).unwrap();
+            let left = dict.get(left_wid).unwrap();
             if i + wlen >= len {
                 let cost = (*dict
-                    .transition_cost(left.left_context_id, EOS_CONTEXT_ID)
+                    .transition_cost(&left.left_context_id, &EOS_CONTEXT_ID)
                     .unwrap() as i32)
                     + (left.cost as i32)
                     + before_cost;
@@ -195,9 +195,9 @@ fn get_dp_table(
             }
 
             for (k, (right_wid, _)) in indices[i + wlen].iter().enumerate() {
-                let right = dict.get_word(right_wid).unwrap();
+                let right = dict.get(right_wid).unwrap();
                 let cost = (*dict
-                    .transition_cost(left.left_context_id, right.right_context_id)
+                    .transition_cost(&left.left_context_id, &right.right_context_id)
                     .unwrap() as i32)
                     + left.cost as i32
                     + right.cost as i32

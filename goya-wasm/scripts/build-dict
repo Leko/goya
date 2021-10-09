@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 set -eu
 
-cargo run -p goya --release -- --dicdir ./__generated__ compile $1
+cargo run -p goya-cli --release -- --dicdir ./__generated__ compile $1

@@ -52,15 +52,15 @@ impl CharClassifier {
         self.chars.get(class).unwrap()
     }
 
-    pub fn take_unknown_chars(&self, def: &CharDefinition, text: &str, start: usize) -> String {
+    pub fn take_unknown_chars(&self, def: &CharDefinition, text: &str, start: &usize) -> String {
         if !def.group_by_same_kind {
-            return text.chars().skip(start).take(def.len).collect();
+            return text.chars().skip(*start).take(def.len).collect();
         }
 
         let mut len = 0;
         text.chars()
             .enumerate()
-            .skip(start)
+            .skip(*start)
             .take_while(|(_, c)| {
                 if def.len != 0 && len >= def.len || !def.compatible_with(self.get_class_name(*c)) {
                     return false;

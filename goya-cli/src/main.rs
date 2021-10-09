@@ -58,7 +58,7 @@ fn main() {
 
             let encoded = fs::read(util.dict_path()).expect("Failed to load vocabulary");
             let archived = unsafe { archived_root::<IPADic>(&encoded[..]) };
-            let ipadic = archived.deserialize(&mut Infallible).unwrap();
+            let ipadic: IPADic = archived.deserialize(&mut Infallible).unwrap();
 
             let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
             let archived = unsafe { archived_root::<WordSet>(&encoded[..]) };

@@ -3,7 +3,8 @@ use bytesize::ByteSize;
 use console::{style, Emoji};
 use goya::common_prefix_tree::CommonPrefixTree;
 use goya::double_array::DoubleArray;
-use goya::ipadic_loader::load;
+use goya::ipadic::IPADic;
+use goya::ipadic_loader::IPADicLoader;
 use rkyv::ser::{serializers::AllocSerializer, Serializer};
 use std::error::Error;
 use std::fs;
@@ -23,7 +24,8 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         style("[1/4]").bold().dim(),
         LOOKING_GLASS
     );
-    let loaded = load(src_dir)?;
+    let loader = IPADicLoader {};
+    let loaded = loader.load(src_dir)?;
     let mut ipadic = loaded.ipadic;
     let word_set = loaded.word_set;
 
@@ -65,7 +67,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
     let mut serializer = AllocSerializer::<256>::default();
-    serializer.serialize_value(&ipadic).unwrap();
+    serializer.serialize_value::<IPADic>(&ipadic).unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.dict_path(), &bytes).expect("Failed to write dictionary");
     eprintln!("Dictionary stats:");

@@ -1,3 +1,4 @@
+use goya::dictionary::Dictionary;
 use goya::dot;
 use goya::double_array::DoubleArray;
 use goya::id::WordIdentifier;
@@ -39,7 +40,7 @@ pub struct WasmLattice {
 #[wasm_bindgen]
 impl WasmLattice {
     pub fn as_dot(&self) -> String {
-        dot::render(&self.lattice, &IPADIC).unwrap()
+        dot::render(&self.lattice, &*IPADIC).unwrap()
     }
 
     pub fn wakachi(&self) -> Vec<JsValue> {
@@ -59,7 +60,7 @@ impl WasmLattice {
             .find_best()
             .map(|path| {
                 path.into_iter().map(|wid| {
-                    let morpheme = IPADIC.get_word(&wid).unwrap();
+                    let morpheme = IPADIC.get(&wid).unwrap();
                     let surface_form = match wid {
                         WordIdentifier::Known(_, s) => s,
                         WordIdentifier::Unknown(_, s) => s,
@@ -85,6 +86,6 @@ pub fn ready() {
 #[wasm_bindgen]
 pub fn parse(text: &str) -> WasmLattice {
     WasmLattice {
-        lattice: Lattice::parse(text, &DOUBLE_ARRAY, &IPADIC),
+        lattice: Lattice::parse(text, &DOUBLE_ARRAY, &*IPADIC),
     }
 }
