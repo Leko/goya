@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -eu
+
+source $HOME/.cargo/env 
+
+NAME='mecab-ipadic.tar.gz'
+wget 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -O $NAME
+tar -zxvf $NAME
+rm -rf $NAME
+
+DICT='mecab-ipadic-2.7.0-20070801'
+cd goya-wasm 
+npm run update-dict $DICT
+rm -rf $DICT
+NODE_ENV=production npm run build

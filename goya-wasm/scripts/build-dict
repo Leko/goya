@@ -1,2 +1,4 @@
 #!/usr/bin/env sh
-cargo run -p goya --release -- --dicdir ./__generated__ compile ../mecab/mecab-ipadic
+set -eu
+
+cargo run -p goya --release -- --dicdir ./__generated__ compile $1
