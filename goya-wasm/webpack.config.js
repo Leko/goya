@@ -1,6 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const PreloadWebpackPlugin = require("@vue/preload-webpack-plugin");
 
 const swcOption = {
   jsc: {
@@ -41,6 +42,10 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "web", "index.html"),
+    }),
+    new PreloadWebpackPlugin({
+      rel: "prefetch",
+      fileWhitelist: [/.wasm$/],
     }),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "."),
