@@ -4,30 +4,28 @@ use goya::id::WordIdentifier;
 use goya::lattice::Lattice;
 use goya::{dictionary::Dictionary, word_features::WordFeaturesMap};
 use goya_ipadic::ipadic::IPADic;
-use rkyv::{archived_root, Deserialize, Infallible};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-#[macro_use]
-extern crate lazy_static;
-
-lazy_static! {
-    static ref DOUBLE_ARRAY: DoubleArray = {
-        let archived =
-            unsafe { archived_root::<DoubleArray>(include_bytes!("../__generated__/da.bin")) };
-        archived.deserialize(&mut Infallible).unwrap()
-    };
-    static ref IPADIC: IPADic = {
-        let archived =
-            unsafe { archived_root::<IPADic>(include_bytes!("../__generated__/dict.bin")) };
-        archived.deserialize(&mut Infallible).unwrap()
-    };
-    static ref WORD_FEATURES: WordFeaturesMap = {
-        let archived = unsafe {
-            archived_root::<WordFeaturesMap>(include_bytes!("../__generated__/features.bin"))
+#[wasm_bindgen]
+pub struct GoyaContext {
+    da: DoubleArray,
+    dict: IPADic,
+    features: WordFeaturesMap,
+}
+#[wasm_bindgen]
+impl GoyaContext {
+    #[wasm_bindgen(constructor)]
+    pub fn new(da: &str, dict: &str, features: &str) -> GoyaContext {
+        let da: DoubleArray = serde_json::from_str(da).unwrap();
+        let dict: IPADic = serde_json::from_str(dict).unwrap();
+        let features: WordFeaturesMap = if features.is_empty() {
+            WordFeaturesMap::new(vec![], vec![])
+        } else {
+            serde_json::from_str(features).unwrap()
         };
-        archived.deserialize(&mut Infallible).unwrap()
-    };
+        GoyaContext { da, dict, features }
+    }
 }
 
 #[derive(Serialize)]
@@ -47,28 +45,31 @@ pub struct WasmLattice {
 }
 #[wasm_bindgen]
 impl WasmLattice {
-    pub fn as_dot(&self) -> String {
-        dot::render(&self.lattice, &*IPADIC).unwrap()
+    pub fn as_dot(&self, context: &GoyaContext) -> String {
+        dot::render(&self.lattice, &context.dict).unwrap()
     }
 
-    pub fn wakachi(&self) -> Vec<JsValue> {
-        self.best_morphemes()
+    pub fn wakachi(&self, context: &GoyaContext) -> Vec<JsValue> {
+        self.best_morphemes(context)
             .map(|morpheme| serde_wasm_bindgen::to_value(&morpheme.surface_form).unwrap())
             .collect()
     }
 
-    pub fn find_best(&self) -> Vec<JsValue> {
-        self.best_morphemes()
+    pub fn find_best(&self, context: &GoyaContext) -> Vec<JsValue> {
+        self.best_morphemes(context)
             .map(|morpheme| serde_wasm_bindgen::to_value(&morpheme).unwrap())
             .collect()
     }
 
-    fn best_morphemes(&self) -> impl Iterator<Item = WasmMorpheme> + '_ {
+    fn best_morphemes<'a>(
+        &self,
+        context: &'a GoyaContext,
+    ) -> impl Iterator<Item = WasmMorpheme> + 'a {
         self.lattice
             .find_best()
-            .map(|path| {
-                path.into_iter().map(|wid| {
-                    let morpheme = IPADIC.get(&wid).unwrap();
+            .map(move |path| {
+                path.into_iter().map(move |wid| {
+                    let morpheme = context.dict.get(&wid).unwrap();
                     let (surface_form, is_known) = match &wid {
                         WordIdentifier::Known(_, s) => (s.to_string(), true),
                         WordIdentifier::Unknown(_, s) => (s.to_string(), false),
@@ -88,31 +89,22 @@ impl WasmLattice {
 }
 
 #[wasm_bindgen]
-pub async fn ready() {
-    futures::join!(async { lazy_static::initialize(&IPADIC) }, async {
-        lazy_static::initialize(&DOUBLE_ARRAY)
-    },);
-}
-
-#[wasm_bindgen]
-pub fn parse(text: &str) -> WasmLattice {
+pub fn parse(text: &str, context: &GoyaContext) -> WasmLattice {
     WasmLattice {
-        lattice: Lattice::parse(text, &DOUBLE_ARRAY, &*IPADIC),
+        lattice: Lattice::parse(text, &context.da, &context.dict),
     }
 }
 
 #[wasm_bindgen]
-pub fn get_features(wids: &str) -> JsValue {
+pub fn get_features(wids: &str, context: &GoyaContext) -> JsValue {
     let wids: Vec<WordIdentifier> = serde_json::from_str(wids).unwrap();
-    let features: Vec<Vec<String>> = wids
+    let features: Vec<Option<Vec<String>>> = wids
         .iter()
-        .map(|wid| {
-            WORD_FEATURES
+        .map(move |wid| {
+            context
+                .features
                 .get(wid)
-                .unwrap()
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
+                .map(|f| f.iter().map(|s| s.to_string()).collect())
         })
         .collect::<Vec<_>>();
     serde_wasm_bindgen::to_value(&features).unwrap()

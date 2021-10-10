@@ -60,6 +60,8 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     serializer.serialize_value(&da).unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.da_path(), &bytes).expect("Failed to write dictionary");
+    fs::write(util.da_json_path(), serde_json::to_vec(&da).unwrap())
+        .expect("Failed to write dictionary");
     eprintln!("DoubleArray stats:");
     eprintln!("  elements: {}", da.base.len());
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
@@ -70,6 +72,11 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         .unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.dict_path(), &bytes).expect("Failed to write dictionary");
+    fs::write(
+        util.dict_json_path(),
+        serde_json::to_vec(&loaded.ipadic).unwrap(),
+    )
+    .expect("Failed to write dictionary");
     eprintln!("Dictionary stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
@@ -77,6 +84,11 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     serializer.serialize_value(&loaded.word_set).unwrap();
     let bytes = serializer.into_serializer().into_inner();
     fs::write(util.features_path(), &bytes).expect("Failed to write word features");
+    fs::write(
+        util.features_json_path(),
+        serde_json::to_vec(&loaded.word_set).unwrap(),
+    )
+    .expect("Failed to write word features");
     eprintln!("Word features stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
