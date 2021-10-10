@@ -5,6 +5,7 @@ use glob::glob;
 use goya::char_class::{CharClass, CharClassifier, CharDefinition, InvokeTiming};
 use goya::morpheme::Morpheme;
 use goya::word_features::WordFeaturesMap;
+use indexmap::IndexSet;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -33,18 +34,23 @@ impl IPADicLoader {
         let csv_pattern = Path::new(dir).join("*.csv");
         let csv_pattern = csv_pattern.to_str().ok_or("Failed to build glob pattern")?;
 
+        let mut vocabulary_index: IndexSet<Morpheme> = IndexSet::new();
         let mut surfaces = HashMap::new();
+        let mut known_features = HashMap::new();
         let mut vocabulary = HashMap::new();
         let mut tmp_homonyms = HashMap::new();
         let mut id: usize = 1;
         for path in glob(csv_pattern)? {
-            for word in load_words_csv(path?)? {
-                surfaces.insert(id, word.surface_form.to_string());
+            for row in load_words_csv(path?)? {
+                surfaces.insert(id, row.surface_form.to_string());
+                known_features.insert(id, row.features.clone());
                 tmp_homonyms
-                    .entry(word.surface_form.to_string())
+                    .entry(row.surface_form.to_string())
                     .or_insert_with(Vec::new)
                     .push(id);
-                vocabulary.insert(id, word);
+
+                let (idx, _) = vocabulary_index.insert_full(row.into());
+                vocabulary.insert(id, idx);
                 id += 1;
             }
         }
@@ -56,11 +62,14 @@ impl IPADicLoader {
         }
 
         let mut unknown_vocabulary = HashMap::new();
+        let mut unknown_features = HashMap::new();
         let mut unknown_classes = HashMap::new();
         let mut id = 1;
         for (class, words) in unknown.into_iter() {
-            for word in words {
-                unknown_vocabulary.insert(id, word);
+            for row in words {
+                unknown_features.insert(id, row.features.clone());
+                let (idx, _) = vocabulary_index.insert_full(row.into());
+                unknown_vocabulary.insert(id, idx);
                 unknown_classes
                     .entry(class.to_string())
                     .or_insert_with(Vec::new)
@@ -68,16 +77,11 @@ impl IPADicLoader {
                 id += 1;
             }
         }
-        let word_set = WordFeaturesMap::new(
-            vocabulary
-                .iter()
-                .map(|(wid, row)| (*wid, row.features.clone()))
-                .collect(),
-            unknown_vocabulary
-                .iter()
-                .map(|(wid, row)| (*wid, row.features.clone()))
-                .collect(),
-        );
+
+        for i in vocabulary_index.iter() {
+            println!("{:?}", i);
+        }
+        let word_set = WordFeaturesMap::new(known_features, unknown_features);
         let ipadic = IPADic::from(
             vocabulary
                 .iter()
@@ -91,6 +95,7 @@ impl IPADicLoader {
                 .iter()
                 .map(|(wid, row)| (*wid, row.clone().into()))
                 .collect(),
+            vocabulary_index,
         );
         let ret = LoadResult {
             word_set,

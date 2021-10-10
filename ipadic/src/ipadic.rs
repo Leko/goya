@@ -2,6 +2,7 @@ use goya::char_class::CharClassifier;
 use goya::char_class::CharDefinition;
 use goya::dictionary::Dictionary;
 use goya::morpheme::Morpheme;
+use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
@@ -9,9 +10,11 @@ use std::vec::Vec;
 
 // TODO: Make it newtype idiom
 type MorphemeId = usize;
+type MorphemeIndex = usize;
+
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct IPADic {
-    vocabulary: HashMap<usize, Morpheme>,
+    vocabulary: HashMap<usize, MorphemeIndex>,
     homonyms: HashMap<MorphemeId, Vec<usize>>,
     // FIXME: Remove
     classes: CharClassifier,
@@ -19,15 +22,20 @@ pub struct IPADic {
     /// 1つのカテゴリに複数の素性を定義してもかまいません. 学習後, 適切なコスト値が 自動的に与えられます.
     /// https://taku910.github.io/mecab/learn.html#config
     unknown_classes: HashMap<String, Vec<usize>>,
-    unknown_vocabulary: HashMap<usize, Morpheme>,
+    unknown_vocabulary: HashMap<usize, MorphemeIndex>,
+    vocabulary_index: IndexSet<Morpheme>,
 }
 impl Dictionary for IPADic {
     fn get_known_morpheme(&self, wid: &usize) -> Option<&Morpheme> {
-        self.vocabulary.get(wid)
+        self.vocabulary
+            .get(wid)
+            .map(|idx| self.vocabulary_index.get_index(*idx).unwrap())
     }
 
     fn get_unknown_morpheme(&self, wid: &usize) -> Option<&Morpheme> {
-        self.unknown_vocabulary.get(wid)
+        self.unknown_vocabulary
+            .get(wid)
+            .map(|idx| self.vocabulary_index.get_index(*idx).unwrap())
     }
 
     fn resolve_homonyms(&self, wid: &usize) -> Option<&Vec<usize>> {
@@ -48,6 +56,7 @@ impl Dictionary for IPADic {
             .unwrap()
             .iter()
             .map(|wid| (*wid, self.unknown_vocabulary.get(wid).unwrap()))
+            .map(|(wid, idx)| (wid, self.vocabulary_index.get_index(*idx).unwrap()))
             .collect::<Vec<_>>()
     }
 
@@ -66,12 +75,13 @@ impl Dictionary for IPADic {
 }
 impl IPADic {
     pub fn from(
-        vocabulary: HashMap<usize, Morpheme>,
+        vocabulary: HashMap<usize, MorphemeIndex>,
         homonyms: HashMap<MorphemeId, Vec<usize>>,
         classes: CharClassifier,
         matrix: Vec<Vec<i16>>,
         unknown_classes: HashMap<String, Vec<usize>>,
-        unknown_vocabulary: HashMap<usize, Morpheme>,
+        unknown_vocabulary: HashMap<usize, MorphemeIndex>,
+        vocabulary_index: IndexSet<Morpheme>,
     ) -> IPADic {
         IPADic {
             vocabulary,
@@ -80,6 +90,7 @@ impl IPADic {
             matrix,
             unknown_classes,
             unknown_vocabulary,
+            vocabulary_index,
         }
     }
 
