@@ -10,5 +10,5 @@ rm -rf $NAME
 
 DICT='mecab-ipadic-2.7.0-20070801'
 ./scripts/build-dict ../$DICT
-cd wasm-core
+cd playground
 NODE_ENV=production npm run build
