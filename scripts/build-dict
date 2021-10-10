@@ -23,18 +23,15 @@ async function main() {
   );
 
   const base = path.join(__dirname, "..");
+  const generatedDir = path.join(base, "wasm-core", "__generated__");
+  const pkgDir = path.join(base, "wasm-core", "pkg");
+  await Promise.all([fs.mkdir(generatedDir), fs.mkdir(pkgDir)]);
   await Promise.all([
-    fs.rename(
-      path.join(tmp, "da.bin"),
-      path.join(base, "wasm-core", "__generated__", "da.bin")
-    ),
-    fs.rename(
-      path.join(tmp, "dict.bin"),
-      path.join(base, "wasm-core", "__generated__", "dict.bin")
-    ),
+    fs.rename(path.join(tmp, "da.bin"), path.join(generatedDir, "da.bin")),
+    fs.rename(path.join(tmp, "dict.bin"), path.join(generatedDir, "dict.bin")),
     fs.rename(
       path.join(tmp, "features.json"),
-      path.join(base, "wasm-core", "pkg", "features.json")
+      path.join(pkgDir, "features.json")
     ),
   ]);
 }
