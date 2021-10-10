@@ -9,7 +9,6 @@ tar -zxvf $NAME
 rm -rf $NAME
 
 DICT='mecab-ipadic-2.7.0-20070801'
-cd goya-wasm 
 ./scripts/build-dict ../$DICT
-rm -rf $DICT
+cd wasm-core
 NODE_ENV=production npm run build
