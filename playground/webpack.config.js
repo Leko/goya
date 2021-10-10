@@ -1,7 +1,10 @@
 const path = require("path");
+const zlib = require("zlib");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-const PreloadWebpackPlugin = require("@vue/preload-webpack-plugin");
+const CompressionWebpackPlugin = require("compression-webpack-plugin");
+
+const { BROTLI_PARAM_QUALITY, BROTLI_MAX_QUALITY } = zlib.constants;
 
 const swcOption = {
   jsc: {
@@ -43,13 +46,18 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "src", "index.html"),
     }),
-    new PreloadWebpackPlugin({
-      rel: "prefetch",
-      fileWhitelist: [/.wasm$/],
-    }),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "..", "wasm-core"),
       forceMode: "production",
+    }),
+    new CompressionWebpackPlugin({
+      filename: "[path][base].br",
+      test: /\.(wasm|js)$/,
+      threshold: 1024 * 500, // 500kb
+      algorithm: "brotliCompress",
+      compressionOptions: {
+        [BROTLI_PARAM_QUALITY]: BROTLI_MAX_QUALITY,
+      },
     }),
   ],
   experiments: {
