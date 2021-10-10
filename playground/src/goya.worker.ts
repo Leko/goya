@@ -15,7 +15,7 @@ const decoder = new TextDecoder();
 
 async function parse(input: ArrayBufferLike): Promise<ArrayBufferLike> {
   performance.mark(kLoad);
-  const mod = await import("../pkg");
+  const mod = await import("../../wasm-core/pkg");
   performance.mark(kDict);
   await mod.ready();
   performance.mark(kParse);
@@ -36,4 +36,11 @@ async function parse(input: ArrayBufferLike): Promise<ArrayBufferLike> {
   return Comlink.transfer(res, [res.buffer]);
 }
 
-Comlink.expose({ parse });
+async function getFeatures(payload: ArrayBufferLike): Promise<ArrayBufferLike> {
+  const mod = await import("../../wasm-core/pkg");
+  const features = mod.get_features(decoder.decode(payload));
+  const res = encoder.encode(JSON.stringify(features));
+  return Comlink.transfer(res, [res.buffer]);
+}
+
+Comlink.expose({ parse, getFeatures });

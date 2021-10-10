@@ -1,4 +1,42 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env node
+const os = require("os");
+const fs = require("fs/promises");
+const path = require("path");
+const { spawnSync } = require("child_process");
 
-cargo run -p goya-cli --release -- --dicdir ./__generated__ compile $1
+async function main() {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "goya-dict-"));
+  spawnSync(
+    "cargo",
+    [
+      "run",
+      "-p",
+      "goya-cli",
+      "--release",
+      "--",
+      "--dicdir",
+      tmp,
+      "compile",
+      process.argv[2],
+    ],
+    { stdio: "inherit" }
+  );
+
+  const base = path.join(__dirname, "..");
+  await Promise.all([
+    fs.rename(
+      path.join(tmp, "da.bin"),
+      path.join(base, "wasm-core", "__generated__", "da.bin")
+    ),
+    fs.rename(
+      path.join(tmp, "dict.bin"),
+      path.join(base, "wasm-core", "__generated__", "dict.bin")
+    ),
+    fs.rename(
+      path.join(tmp, "features.json"),
+      path.join(base, "wasm-core", "pkg", "features.json")
+    ),
+  ]);
+}
+
+main();

@@ -32,12 +32,12 @@ lazy_static! {
 
 #[derive(Serialize)]
 pub struct WasmMorpheme {
+    wid: WordIdentifier,
     is_known: bool,
     surface_form: String,
     left_context_id: usize,
     right_context_id: usize,
     cost: i16,
-    features: Vec<String>,
 }
 impl WasmMorpheme {}
 
@@ -69,20 +69,14 @@ impl WasmLattice {
             .map(|path| {
                 path.into_iter().map(|wid| {
                     let morpheme = IPADIC.get(&wid).unwrap();
-                    let features = WORD_FEATURES
-                        .get(&wid)
-                        .unwrap()
-                        .iter()
-                        .map(|s| s.to_string())
-                        .collect();
-                    let (surface_form, is_known) = match wid {
-                        WordIdentifier::Known(_, s) => (s, true),
-                        WordIdentifier::Unknown(_, s) => (s, false),
+                    let (surface_form, is_known) = match &wid {
+                        WordIdentifier::Known(_, s) => (s.to_string(), true),
+                        WordIdentifier::Unknown(_, s) => (s.to_string(), false),
                     };
                     WasmMorpheme {
+                        wid,
                         is_known,
-                        surface_form,
-                        features,
+                        surface_form: surface_form,
                         left_context_id: morpheme.left_context_id,
                         right_context_id: morpheme.right_context_id,
                         cost: morpheme.cost,
@@ -95,11 +89,9 @@ impl WasmLattice {
 
 #[wasm_bindgen]
 pub async fn ready() {
-    futures::join!(
-        async { lazy_static::initialize(&WORD_FEATURES) },
-        async { lazy_static::initialize(&IPADIC) },
-        async { lazy_static::initialize(&DOUBLE_ARRAY) },
-    );
+    futures::join!(async { lazy_static::initialize(&IPADIC) }, async {
+        lazy_static::initialize(&DOUBLE_ARRAY)
+    },);
 }
 
 #[wasm_bindgen]
@@ -107,4 +99,21 @@ pub fn parse(text: &str) -> WasmLattice {
     WasmLattice {
         lattice: Lattice::parse(text, &DOUBLE_ARRAY, &*IPADIC),
     }
+}
+
+#[wasm_bindgen]
+pub fn get_features(wids: &str) -> JsValue {
+    let wids: Vec<WordIdentifier> = serde_json::from_str(wids).unwrap();
+    let features: Vec<Vec<String>> = wids
+        .iter()
+        .map(|wid| {
+            WORD_FEATURES
+                .get(wid)
+                .unwrap()
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
+        })
+        .collect::<Vec<_>>();
+    serde_wasm_bindgen::to_value(&features).unwrap()
 }

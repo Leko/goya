@@ -8,15 +8,15 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { useDebounce } from "react-use";
-import * as Comlink from "comlink";
-import type { Stats } from "./MorphologicalAnalysis.worker";
+import { wrap, transfer } from "comlink";
+import type { Stats } from "./goya.worker";
 import { Result } from "./Result";
 
-interface ProxyAPI {
+interface GoyaCoreAPI {
   parse: (input: ArrayBufferLike) => Promise<ArrayBufferLike>;
 }
-const proxy = Comlink.wrap<ProxyAPI>(
-  new Worker(new URL("./MorphologicalAnalysis.worker.ts", import.meta.url))
+const worker = wrap<GoyaCoreAPI>(
+  new Worker(new URL("./goya.worker.ts", import.meta.url))
 );
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -42,8 +42,8 @@ export function App() {
         setResult(null);
       } else {
         const input = encoder.encode(text);
-        proxy
-          .parse(Comlink.transfer(input, [input.buffer]))
+        worker
+          .parse(transfer(input, [input.buffer]))
           .then((res) => decoder.decode(res))
           .then((res) => JSON.parse(res))
           .then(setResult);

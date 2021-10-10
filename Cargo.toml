@@ -4,7 +4,7 @@ members = [
   "goya-cli",
   "goya",
   "ipadic",
-  "goya-wasm",
+  "wasm-core",
 ]
 
 [profile.release]

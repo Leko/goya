@@ -15,7 +15,7 @@ const swcOption = {
 };
 
 module.exports = {
-  entry: "./web/index.tsx",
+  entry: "./src/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
@@ -41,14 +41,14 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "web", "index.html"),
+      template: path.resolve(__dirname, "src", "index.html"),
     }),
     new PreloadWebpackPlugin({
       rel: "prefetch",
       fileWhitelist: [/.wasm$/],
     }),
     new WasmPackPlugin({
-      crateDirectory: path.resolve(__dirname, "."),
+      crateDirectory: path.resolve(__dirname, "..", "wasm-core"),
       forceMode: "production",
     }),
   ],
