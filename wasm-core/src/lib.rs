@@ -76,7 +76,7 @@ impl WasmLattice {
                     WasmMorpheme {
                         wid,
                         is_known,
-                        surface_form: surface_form,
+                        surface_form,
                         left_context_id: morpheme.left_context_id,
                         right_context_id: morpheme.right_context_id,
                         cost: morpheme.cost,

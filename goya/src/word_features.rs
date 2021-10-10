@@ -1,21 +1,17 @@
 use super::id::WordIdentifier;
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct WordFeaturesMap {
     index: IndexSet<String>,
-    known: HashMap<usize, WordFeatures>,
-    unknown: HashMap<usize, WordFeatures>,
+    known: Vec<WordFeatures>,   // index = morpheme ID
+    unknown: Vec<WordFeatures>, // index = morpheme ID
 }
 impl WordFeaturesMap {
-    pub fn new(
-        known: HashMap<usize, Vec<String>>,
-        unknown: HashMap<usize, Vec<String>>,
-    ) -> WordFeaturesMap {
+    pub fn new(known: Vec<Vec<String>>, unknown: Vec<Vec<String>>) -> WordFeaturesMap {
         let mut index: IndexSet<String> = IndexSet::new();
-        for (_, features) in known.iter().chain(unknown.iter()) {
+        for features in known.iter().chain(unknown.iter()) {
             for f in features.iter() {
                 index.insert(f.to_string());
             }
@@ -24,20 +20,14 @@ impl WordFeaturesMap {
         WordFeaturesMap {
             known: known
                 .into_iter()
-                .map(|(wid, f)| {
-                    (
-                        wid,
-                        WordFeatures::new(f.iter().map(|s| index.get_full(s).unwrap().0).collect()),
-                    )
+                .map(|f| {
+                    WordFeatures::new(f.iter().map(|s| index.get_full(s).unwrap().0).collect())
                 })
                 .collect(),
             unknown: unknown
                 .into_iter()
-                .map(|(wid, f)| {
-                    (
-                        wid,
-                        WordFeatures::new(f.iter().map(|s| index.get_full(s).unwrap().0).collect()),
-                    )
+                .map(|f| {
+                    WordFeatures::new(f.iter().map(|s| index.get_full(s).unwrap().0).collect())
                 })
                 .collect(),
             index,
@@ -52,7 +42,7 @@ impl WordFeaturesMap {
     }
 
     pub fn get_known(&self, wid: &usize) -> Option<Vec<&String>> {
-        self.known.get(wid).map(|f| {
+        self.known.get(*wid).map(|f| {
             f.0.iter()
                 .map(|idx| self.index.get_index(*idx).unwrap())
                 .collect()
@@ -60,7 +50,7 @@ impl WordFeaturesMap {
     }
 
     pub fn get_unknown(&self, wid: &usize) -> Option<Vec<&String>> {
-        self.unknown.get(wid).map(|f| {
+        self.unknown.get(*wid).map(|f| {
             f.0.iter()
                 .map(|idx| self.index.get_index(*idx).unwrap())
                 .collect()

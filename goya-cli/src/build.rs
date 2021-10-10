@@ -80,9 +80,6 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     eprintln!("Word features stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
-    let bytes = serde_json::to_string(&loaded.word_set).unwrap();
-    fs::write(util.features_json_path(), &bytes).expect("Failed to write word features");
-
     let end = timer.elapsed();
     eprintln!(
         "{} Done in {}.{:03}s",

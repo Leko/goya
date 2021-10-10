@@ -10,9 +10,9 @@ use regex::Regex;
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fs;
 use std::path::Path;
 use std::vec::Vec;
-use std::{fs, vec};
 
 const COL_SURFACE_FORM: usize = 0; // 表層形
 const COL_LEFT_CONTEXT_ID: usize = 1; // 左文脈ID
@@ -78,23 +78,17 @@ impl IPADicLoader {
             }
         }
 
-        for i in vocabulary_index.iter() {
-            println!("{:?}", i);
-        }
-        let word_set = WordFeaturesMap::new(known_features, unknown_features);
+        let word_set = WordFeaturesMap::new(
+            map_to_vec(known_features, Vec::new),
+            map_to_vec(unknown_features, Vec::new),
+        );
         let ipadic = IPADic::from(
-            vocabulary
-                .iter()
-                .map(|(wid, row)| (*wid, row.clone().into()))
-                .collect(),
-            homonyms,
+            map_to_vec(vocabulary, || 0),
+            map_to_vec(homonyms, Vec::new),
             classes,
             matrix,
             unknown_classes,
-            unknown_vocabulary
-                .iter()
-                .map(|(wid, row)| (*wid, row.clone().into()))
-                .collect(),
+            map_to_vec(unknown_vocabulary, || 0),
             vocabulary_index,
         );
         let ret = LoadResult {
@@ -267,4 +261,12 @@ where
             .push(w);
     }
     Ok(map)
+}
+
+fn map_to_vec<T: Clone>(map: HashMap<usize, T>, default: impl Fn() -> T) -> Vec<T> {
+    let mut ret = vec![default(); map.len() + 1];
+    for (idx, value) in map.into_iter() {
+        ret[idx] = value;
+    }
+    ret
 }
