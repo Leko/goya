@@ -2,6 +2,7 @@ const path = require("path");
 const zlib = require("zlib");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const { GenerateSW: WorkboxPlugin } = require("workbox-webpack-plugin");
 
 const { BROTLI_PARAM_QUALITY, BROTLI_MAX_QUALITY } = zlib.constants;
 
@@ -52,6 +53,10 @@ module.exports = {
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "..", "wasm-features"),
       forceMode: "production",
+    }),
+    new WorkboxPlugin({
+      clientsClaim: true,
+      skipWaiting: true,
     }),
   ],
   experiments: {
