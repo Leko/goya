@@ -49,6 +49,10 @@ module.exports = {
       crateDirectory: path.resolve(__dirname, "..", "wasm-core"),
       forceMode: "production",
     }),
+    new WasmPackPlugin({
+      crateDirectory: path.resolve(__dirname, "..", "wasm-features"),
+      forceMode: "production",
+    }),
   ],
   experiments: {
     asyncWebAssembly: true,

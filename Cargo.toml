@@ -5,6 +5,7 @@ members = [
   "goya",
   "ipadic",
   "wasm-core",
+  "wasm-features",
 ]
 
 [profile.release]

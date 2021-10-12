@@ -26,6 +26,14 @@ async function main() {
   const generatedDir = path.join(base, "wasm-core", "__generated__");
   await fs.rmdir(generatedDir, { recursive: true });
   await fs.rename(tmp, generatedDir);
+
+  const generatedDir2 = path.join(base, "wasm-features", "__generated__");
+  await fs.rmdir(generatedDir2, { recursive: true });
+  await fs.mkdir(generatedDir2, { recursive: true });
+  await fs.rename(
+    path.join(generatedDir, "features.bin"),
+    path.join(generatedDir2, "features.bin")
+  );
 }
 
 main();

@@ -37,7 +37,7 @@ async function parse(input: ArrayBufferLike): Promise<ArrayBufferLike> {
 }
 
 async function getFeatures(payload: ArrayBufferLike): Promise<ArrayBufferLike> {
-  const mod = await import("../../wasm-core/pkg");
+  const mod = await import("../../wasm-features/pkg");
   const features = mod.get_features(decoder.decode(payload));
   const res = encoder.encode(JSON.stringify(features));
   return Comlink.transfer(res, [res.buffer]);

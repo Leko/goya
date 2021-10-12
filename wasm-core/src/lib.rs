@@ -1,8 +1,8 @@
+use goya::dictionary::Dictionary;
 use goya::dot;
 use goya::double_array::DoubleArray;
 use goya::id::WordIdentifier;
 use goya::lattice::Lattice;
-use goya::{dictionary::Dictionary, word_features::WordFeaturesMap};
 use goya_ipadic::ipadic::IPADic;
 use rkyv::{archived_root, Deserialize, Infallible};
 use serde::Serialize;
@@ -20,12 +20,6 @@ lazy_static! {
     static ref IPADIC: IPADic = {
         let archived =
             unsafe { archived_root::<IPADic>(include_bytes!("../__generated__/dict.bin")) };
-        archived.deserialize(&mut Infallible).unwrap()
-    };
-    static ref WORD_FEATURES: WordFeaturesMap = {
-        let archived = unsafe {
-            archived_root::<WordFeaturesMap>(include_bytes!("../__generated__/features.bin"))
-        };
         archived.deserialize(&mut Infallible).unwrap()
     };
 }
@@ -99,21 +93,4 @@ pub fn parse(text: &str) -> WasmLattice {
     WasmLattice {
         lattice: Lattice::parse(text, &DOUBLE_ARRAY, &*IPADIC),
     }
-}
-
-#[wasm_bindgen]
-pub fn get_features(wids: &str) -> JsValue {
-    let wids: Vec<WordIdentifier> = serde_json::from_str(wids).unwrap();
-    let features: Vec<Vec<String>> = wids
-        .iter()
-        .map(|wid| {
-            WORD_FEATURES
-                .get(wid)
-                .unwrap()
-                .iter()
-                .map(|s| s.to_string())
-                .collect()
-        })
-        .collect::<Vec<_>>();
-    serde_wasm_bindgen::to_value(&features).unwrap()
 }
