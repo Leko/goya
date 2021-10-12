@@ -3,6 +3,7 @@ const zlib = require("zlib");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const { GenerateSW: WorkboxPlugin } = require("workbox-webpack-plugin");
+const PreloadWebpackPlugin = require("@vue/preload-webpack-plugin");
 
 const { BROTLI_PARAM_QUALITY, BROTLI_MAX_QUALITY } = zlib.constants;
 
@@ -45,6 +46,10 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "src", "index.html"),
+    }),
+    new PreloadWebpackPlugin({
+      rel: "prefetch",
+      fileWhitelist: [/.wasm$/],
     }),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "..", "wasm-core"),
