@@ -34,10 +34,6 @@ module.exports = {
           options: swcOption,
         },
       },
-      {
-        test: /\.json?$/,
-        type: "asset/resource",
-      },
       // It's for Viz.js
       {
         test: /\.render\.js$/,

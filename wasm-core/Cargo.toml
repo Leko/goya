@@ -12,7 +12,6 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-console_error_panic_hook = "0.1"
 futures = "0.3.17"
 goya = {path = "../goya"}
 goya-ipadic = {path = "../ipadic"}

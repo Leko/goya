@@ -25,16 +25,4 @@ impl PathUtil {
     pub fn features_path(&self) -> PathBuf {
         Path::new(&self.base).join("features.bin")
     }
-
-    pub fn da_json_path(&self) -> PathBuf {
-        Path::new(&self.base).join("da.json")
-    }
-
-    pub fn dict_json_path(&self) -> PathBuf {
-        Path::new(&self.base).join("dict.json")
-    }
-
-    pub fn features_json_path(&self) -> PathBuf {
-        Path::new(&self.base).join("features.json")
-    }
 }
