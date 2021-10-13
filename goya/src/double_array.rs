@@ -1,5 +1,4 @@
 use super::common_prefix_tree::CommonPrefixTree;
-use core::panic;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -81,9 +80,7 @@ impl DoubleArray {
                 continue;
             }
 
-            let s = *state_cache
-                .get(&prefix)
-                .unwrap_or_else(|| panic!("Unknown prefix: {:?}", prefix));
+            let s = *state_cache.get(&prefix).unwrap();
             da.insert_to_base(s, da.find_next_s(node));
             for (next_c, child) in node.children.iter() {
                 let t = da.base.get(s).unwrap() + da.get_code(next_c).unwrap() as i32;

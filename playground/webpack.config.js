@@ -23,6 +23,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
+    chunkFilename: "[name].[chunkhash].js",
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
