@@ -11,7 +11,6 @@
   "devDependencies": {
     "@mui/styles": "^5.0.1",
     "@swc/core": "^1.2.92",
-    "@vue/preload-webpack-plugin": "^2.0.0",
     "@wasm-tool/wasm-pack-plugin": "^1.5.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.3.2",
