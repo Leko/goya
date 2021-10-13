@@ -48,7 +48,7 @@ module.exports = {
       template: path.resolve(__dirname, "src", "index.html"),
     }),
     new PreloadWebpackPlugin({
-      rel: "prefetch",
+      rel: "preconnect",
       fileWhitelist: [/.wasm$/],
     }),
     new WasmPackPlugin({
