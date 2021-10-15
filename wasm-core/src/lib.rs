@@ -85,7 +85,7 @@ impl WasmLattice {
 pub async fn ready() {
     futures::join!(async { lazy_static::initialize(&IPADIC) }, async {
         lazy_static::initialize(&DOUBLE_ARRAY)
-    },);
+    });
 }
 
 #[wasm_bindgen]
