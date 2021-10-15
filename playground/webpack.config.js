@@ -60,10 +60,14 @@ module.exports = {
       crateDirectory: path.resolve(__dirname, "..", "wasm-features"),
       forceMode: "production",
     }),
-    new WorkboxPlugin({
-      clientsClaim: true,
-      skipWaiting: true,
-    }),
+    ...(process.env.NODE_ENV === "production"
+      ? [
+          new WorkboxPlugin({
+            clientsClaim: true,
+            skipWaiting: true,
+          }),
+        ]
+      : []),
   ],
   experiments: {
     asyncWebAssembly: true,
