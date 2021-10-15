@@ -16,8 +16,8 @@ lazy_static! {
 }
 
 #[wasm_bindgen]
-pub fn get_features(wids: &str) -> JsValue {
-    let wids: Vec<WordIdentifier> = serde_json::from_str(wids).unwrap();
+pub fn get_features(wids: &JsValue) -> JsValue {
+    let wids: Vec<WordIdentifier> = wids.into_serde().unwrap();
     let features: Vec<Vec<String>> = wids
         .iter()
         .map(|wid| {
@@ -30,4 +30,9 @@ pub fn get_features(wids: &str) -> JsValue {
         })
         .collect::<Vec<_>>();
     serde_wasm_bindgen::to_value(&features).unwrap()
+}
+
+#[wasm_bindgen]
+pub fn ready() {
+    lazy_static::initialize(&WORD_FEATURES);
 }

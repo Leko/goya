@@ -42,7 +42,7 @@ async function getFeatures(payload: ArrayBufferLike): Promise<ArrayBufferLike> {
   const mod = await import(
     /* webpackChunkName: "features" */ "../../wasm-features/pkg"
   );
-  const features = mod.get_features(decoder.decode(payload));
+  const features = mod.get_features(JSON.parse(decoder.decode(payload)));
   const res = encoder.encode(JSON.stringify(features));
   return Comlink.transfer(res, [res.buffer]);
 }
