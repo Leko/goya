@@ -9,6 +9,7 @@ async function main() {
   spawnSync(
     "cargo",
     [
+      "+nightly",
       "run",
       "-p",
       "goya-cli",

@@ -1,18 +1,13 @@
 use goya::id::WordIdentifier;
 use goya::word_features::WordFeaturesMap;
-use rkyv::{archived_root, Deserialize, Infallible};
 use wasm_bindgen::prelude::*;
 
 #[macro_use]
 extern crate lazy_static;
 
 lazy_static! {
-    static ref WORD_FEATURES: WordFeaturesMap = {
-        let archived = unsafe {
-            archived_root::<WordFeaturesMap>(include_bytes!("../__generated__/features.bin"))
-        };
-        archived.deserialize(&mut Infallible).unwrap()
-    };
+    static ref WORD_FEATURES: WordFeaturesMap =
+        rmp_serde::from_slice(include_bytes!("../__generated__/features.bin")).unwrap();
 }
 
 #[wasm_bindgen]

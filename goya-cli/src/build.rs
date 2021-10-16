@@ -73,9 +73,7 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
     eprintln!("Dictionary stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
 
-    let mut serializer = AllocSerializer::<256>::default();
-    serializer.serialize_value(&loaded.word_set).unwrap();
-    let bytes = serializer.into_serializer().into_inner();
+    let bytes = rmp_serde::to_vec(&loaded.word_set).unwrap();
     fs::write(util.features_path(), &bytes).expect("Failed to write word features");
     eprintln!("Word features stats:");
     eprintln!("  bytes: {}", ByteSize(bytes.len() as u64));
@@ -88,4 +86,168 @@ pub fn build(src_dir: &str, dist_dir: &str) -> Result<(), Box<dyn Error>> {
         end.subsec_millis()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use goya::word_features::WordFeaturesMap;
+    use goya_ipadic::ipadic_loader::LoadResult;
+    use rkyv::{archived_root, Infallible};
+    use serde::{Deserialize, Serialize};
+    use std::io::Write;
+    use std::{env, path::PathBuf};
+    use test::Bencher;
+
+    lazy_static! {
+        static ref LOADED: LoadResult = {
+            let mut dict_path = PathBuf::from(env::current_dir().unwrap());
+            dict_path.pop();
+            dict_path.push("mecab-ipadic-2.7.0-20070801");
+            let loader = IPADicLoader {};
+            let loaded = loader.load(dict_path.as_path().to_str().unwrap()).unwrap();
+            features_binary_sizes(&loaded);
+            loaded
+        };
+    }
+
+    fn features_binary_sizes(loaded: &LoadResult) {
+        let stderr = &mut std::io::stderr();
+        let mut serializer = AllocSerializer::<256>::default();
+        serializer.serialize_value(&loaded.word_set).unwrap();
+        writeln!(
+            stderr,
+            "features_rkyv: {}",
+            ByteSize(serializer.into_serializer().into_inner().len() as u64)
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_json: {}",
+            ByteSize(serde_json::to_vec(&loaded.word_set).unwrap().len() as u64)
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_bincode: {}",
+            ByteSize(bincode::serialize(&loaded.word_set).unwrap().len() as u64)
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_cbor: {}",
+            ByteSize(serde_cbor::to_vec(&loaded.word_set).unwrap().len() as u64)
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_rmp: {}",
+            ByteSize(rmp_serde::to_vec(&loaded.word_set).unwrap().len() as u64)
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_pickle: {}",
+            ByteSize(
+                serde_pickle::to_vec(&loaded.word_set, Default::default())
+                    .unwrap()
+                    .len() as u64
+            )
+        )
+        .unwrap();
+
+        writeln!(
+            stderr,
+            "features_postcard: {}",
+            ByteSize(postcard::to_allocvec(&loaded.word_set).unwrap().len() as u64)
+        )
+        .unwrap();
+
+        let mut s = flexbuffers::FlexbufferSerializer::new();
+        loaded.word_set.serialize(&mut s).unwrap();
+        writeln!(
+            stderr,
+            "features_flexbuffers: {}",
+            ByteSize(s.view().len() as u64)
+        )
+        .unwrap();
+    }
+
+    #[bench]
+    fn features_rkyv_deserialize(b: &mut Bencher) {
+        use rkyv::Deserialize;
+
+        lazy_static::initialize(&LOADED);
+        let mut serializer = AllocSerializer::<256>::default();
+        serializer.serialize_value(&LOADED.word_set).unwrap();
+        let bytes = serializer.into_serializer().into_inner();
+
+        b.iter(|| {
+            let archived = unsafe { archived_root::<WordFeaturesMap>(&bytes[..]) };
+            let _x: WordFeaturesMap = archived.deserialize(&mut Infallible).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_json_deserialize(b: &mut Bencher) {
+        let bytes = serde_json::to_vec(&LOADED.word_set).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = serde_json::from_slice(&bytes).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_bincode_deserialize(b: &mut Bencher) {
+        let bytes = bincode::serialize(&LOADED.word_set).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = bincode::deserialize(&bytes).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_cbor_deserialize(b: &mut Bencher) {
+        let bytes = serde_cbor::to_vec(&LOADED.word_set).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = serde_cbor::from_slice(&bytes).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_rmp_deserialize(b: &mut Bencher) {
+        let bytes = rmp_serde::to_vec(&LOADED.word_set).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = rmp_serde::from_slice(&bytes).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_pickle_deserialize(b: &mut Bencher) {
+        let bytes = serde_pickle::to_vec(&LOADED.word_set, Default::default()).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = serde_pickle::from_slice(&bytes, Default::default()).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_postcard_deserialize(b: &mut Bencher) {
+        let bytes = postcard::to_allocvec(&LOADED.word_set).unwrap();
+        b.iter(|| {
+            let _x: WordFeaturesMap = postcard::from_bytes(&bytes).unwrap();
+        });
+    }
+
+    #[bench]
+    fn features_flexbuffers_deserialize(b: &mut Bencher) {
+        let mut s = flexbuffers::FlexbufferSerializer::new();
+        LOADED.word_set.serialize(&mut s).unwrap();
+        b.iter(|| {
+            let r = flexbuffers::Reader::get_root(s.view()).unwrap();
+            let _x = WordFeaturesMap::deserialize(r).unwrap();
+        });
+    }
 }

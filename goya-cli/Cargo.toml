@@ -22,4 +22,14 @@ goya = {path = "../goya"}
 goya-ipadic = {path = "../ipadic"}
 indexmap = {version = "1.7", features = ["serde"]}
 rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19"}
+rmp-serde = "1.0.0-beta.2"
+
+[dev-dependencies]
+bincode = "1.3"
+flexbuffers = "2.0.0"
+lazy_static = "1.4"
+postcard = {version = "0.7", features = ["alloc"]}
+serde = {version = "1.0", features = ["derive"]}
+serde-pickle = "1.1"
+serde_cbor = "0.11.2"
 serde_json = "1.0"
