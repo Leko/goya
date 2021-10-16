@@ -46,7 +46,7 @@ impl Dictionary for IPADic {
     }
 
     fn classify_char(&self, c: &char) -> &CharDefinition {
-        self.classes.classify(*c)
+        self.classes.classify(c)
     }
 
     fn get_unknown_morphemes_by_class(&self, class: &str) -> Vec<(usize, &Morpheme)> {
