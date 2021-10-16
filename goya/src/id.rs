@@ -14,3 +14,22 @@ impl WordIdentifier {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_surface_known() {
+        let surface = String::from("test");
+        let id = WordIdentifier::Known(0, surface.to_string());
+        assert_eq!(id.get_surface(), surface);
+    }
+
+    #[test]
+    fn get_surface_unknown() {
+        let surface = String::from("test");
+        let id = WordIdentifier::Unknown(0, surface.to_string());
+        assert_eq!(id.get_surface(), surface);
+    }
+}
