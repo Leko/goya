@@ -4,7 +4,6 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 const { GenerateSW: WorkboxPlugin } = require("workbox-webpack-plugin");
 const PreloadWebpackPlugin = require("@vue/preload-webpack-plugin");
-const CompressionWebpackPlugin = require("compression-webpack-plugin");
 
 const { BROTLI_PARAM_QUALITY, BROTLI_MAX_QUALITY } = zlib.constants;
 
@@ -51,16 +50,7 @@ module.exports = {
     }),
     new PreloadWebpackPlugin({
       rel: "preconnect",
-      fileWhitelist: [/\.wasm$/],
-    }),
-    new CompressionWebpackPlugin({
-      test: /\.wasm$/,
-      filename: "[path][base].br",
-      algorithm: "brotliCompress",
-      compressionOptions: {
-        [BROTLI_PARAM_QUALITY]: BROTLI_MAX_QUALITY,
-      },
-      deleteOriginalAssets: "keep-source-map",
+      fileWhitelist: [/.wasm$/],
     }),
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "..", "wasm-core"),
