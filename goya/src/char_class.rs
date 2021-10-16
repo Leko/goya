@@ -18,7 +18,7 @@ pub struct CharDefinition {
     pub timing: InvokeTiming,
     pub group_by_same_kind: bool,
     pub len: usize,
-    pub compatibilities: HashSet<String>,
+    pub compatibilities: HashSet<String>, // elements = class name
 }
 impl CharDefinition {
     pub fn compatible_with(&self, class_name: &str) -> bool {
@@ -35,6 +35,11 @@ impl CharClass {
     pub fn from(range: (u32, u32), class: String) -> CharClass {
         CharClass { range, class }
     }
+
+    pub fn in_range(&self, c: &char) -> bool {
+        let code = *c as u32;
+        self.range.0 <= code && code <= self.range.1
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
@@ -47,7 +52,7 @@ impl CharClassifier {
         CharClassifier { chars, ranges }
     }
 
-    pub fn classify(&self, c: char) -> &CharDefinition {
+    pub fn classify(&self, c: &char) -> &CharDefinition {
         let class = self.get_class_name(c);
         self.chars.get(class).unwrap()
     }
@@ -62,7 +67,7 @@ impl CharClassifier {
             .enumerate()
             .skip(*start)
             .take_while(|(_, c)| {
-                if def.len != 0 && len >= def.len || !def.compatible_with(self.get_class_name(*c)) {
+                if def.len != 0 && len >= def.len || !def.compatible_with(self.get_class_name(c)) {
                     return false;
                 }
                 len += 1;
@@ -72,12 +77,54 @@ impl CharClassifier {
             .collect()
     }
 
-    fn get_class_name(&self, c: char) -> &str {
-        let code = c as u32;
+    fn get_class_name(&self, c: &char) -> &str {
         self.ranges
             .iter()
-            .find(|class| class.range.0 <= code && code <= class.range.1)
+            .find(|class| class.in_range(c))
             .map(|class| class.class.as_str())
             .unwrap_or_else(|| CLASS_DEFAULT)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compatible_with_without_compatibilities() {
+        let def_a = CharDefinition {
+            class: String::from("A"),
+            timing: InvokeTiming::Always,
+            group_by_same_kind: false,
+            len: 2,
+            compatibilities: HashSet::new(),
+        };
+        assert_eq!(def_a.compatible_with("A"), true);
+        assert_eq!(def_a.compatible_with("B"), false);
+    }
+
+    #[test]
+    fn compatible_with_with_compatibilities() {
+        let mut compatibilities = HashSet::new();
+        compatibilities.insert(String::from("B"));
+        let def_a = CharDefinition {
+            class: String::from("A"),
+            timing: InvokeTiming::Always,
+            group_by_same_kind: false,
+            len: 2,
+            compatibilities,
+        };
+        assert_eq!(def_a.compatible_with("A"), true);
+        assert_eq!(def_a.compatible_with("B"), true);
+        assert_eq!(def_a.compatible_with("C"), false);
+    }
+
+    #[test]
+    fn in_range() {
+        let class = CharClass::from((1, 2), String::new());
+        assert_eq!(class.in_range(&(0 as char)), false);
+        assert_eq!(class.in_range(&(1 as char)), true);
+        assert_eq!(class.in_range(&(2 as char)), true);
+        assert_eq!(class.in_range(&(3 as char)), false);
     }
 }
