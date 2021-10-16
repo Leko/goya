@@ -4,6 +4,7 @@ set -eu
 curl https://sh.rustup.rs -sSf | sh -s -- -y 
 source $HOME/.cargo/env 
 cargo install wasm-pack 
+rustup install nightly
 
 cd playground
 npm ci
