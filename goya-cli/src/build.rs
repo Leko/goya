@@ -167,15 +167,6 @@ mod tests {
             ByteSize(postcard::to_allocvec(&loaded.word_set).unwrap().len() as u64)
         )
         .unwrap();
-
-        let mut s = flexbuffers::FlexbufferSerializer::new();
-        loaded.word_set.serialize(&mut s).unwrap();
-        writeln!(
-            stderr,
-            "features_flexbuffers: {}",
-            ByteSize(s.view().len() as u64)
-        )
-        .unwrap();
     }
 
     #[bench]
@@ -238,16 +229,6 @@ mod tests {
         let bytes = postcard::to_allocvec(&LOADED.word_set).unwrap();
         b.iter(|| {
             let _x: WordFeaturesMap = postcard::from_bytes(&bytes).unwrap();
-        });
-    }
-
-    #[bench]
-    fn features_flexbuffers_deserialize(b: &mut Bencher) {
-        let mut s = flexbuffers::FlexbufferSerializer::new();
-        LOADED.word_set.serialize(&mut s).unwrap();
-        b.iter(|| {
-            let r = flexbuffers::Reader::get_root(s.view()).unwrap();
-            let _x = WordFeaturesMap::deserialize(r).unwrap();
         });
     }
 }
