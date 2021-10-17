@@ -1,16 +1,17 @@
 [package]
 authors = ["Leko <leko.noor@gmail.com>"]
+categories = ["text-processing"]
+description = "IPA dictionary for Goya"
 edition = "2018"
 license = "Apache-2.0 OR MIT"
 name = "goya-ipadic"
-publish = false
 version = "0.1.0"
 
 [dependencies]
 csv = "1.1"
 encoding_rs = "0.8"
 glob = "0.3"
-goya = {path = "../goya"}
+goya = "0.1.0"
 indexmap = {version = "1.7", features = ["serde"]}
 regex = "1.5"
 rkyv = {version = "0.7.19", features = ["indexmap"]}
