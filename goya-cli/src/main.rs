@@ -6,7 +6,6 @@ use clap::Clap;
 use futures::executor::block_on;
 use futures::future;
 use goya::double_array::DoubleArray;
-use goya::word_features::WordFeaturesMap;
 use goya_ipadic::ipadic::IPADic;
 use path_util::PathUtil;
 use repl::Format;
@@ -70,8 +69,7 @@ fn main() {
             };
             let features_fut = async {
                 let encoded = fs::read(util.features_path()).expect("Failed to load surfaces");
-                let archived = unsafe { archived_root::<WordFeaturesMap>(&encoded[..]) };
-                archived.deserialize(&mut Infallible).unwrap()
+                rmp_serde::from_slice(&encoded[..]).unwrap()
             };
 
             let (ipadic, word_set) = block_on(future::join(ipadic_fut, features_fut));
