@@ -5,6 +5,7 @@ description = "WebAssembly binding of Goya"
 edition = "2018"
 license = "Apache-2.0 OR MIT"
 name = "goya-features"
+publish = false
 repository = "https://github.com/Leko/goya"
 version = "0.1.0"
 
@@ -12,7 +13,7 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-goya = {path = "../goya"}
+goya = "0.1.0"
 lazy_static = "1.4"
 rmp-serde = "1.0.0-beta.2"
 serde-wasm-bindgen = "0.3.1"
