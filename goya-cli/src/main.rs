@@ -1,10 +1,3 @@
-#![feature(test)]
-extern crate test;
-
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
-
 mod build;
 mod path_util;
 mod repl;
