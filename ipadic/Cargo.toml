@@ -13,5 +13,5 @@ glob = "0.3"
 goya = {path = "../goya"}
 indexmap = {version = "1.7", features = ["serde"]}
 regex = "1.5"
-rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19", features = ["indexmap"]}
+rkyv = {version = "0.7.19", features = ["indexmap"]}
 serde = {version = "1.0", features = ["derive"]}

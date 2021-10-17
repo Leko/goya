@@ -11,6 +11,6 @@ version = "0.1.0"
 [dependencies]
 indexmap = {version = "1.7", features = ["serde"]}
 itertools = "0.10"
-rkyv = {git = "https://github.com/rkyv/rkyv", tag = "v0.7.19", features = ["indexmap"]}
+rkyv = {version = "0.7.19", features = ["indexmap"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_bytes = "0.11"
