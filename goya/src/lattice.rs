@@ -60,7 +60,7 @@ impl Lattice {
                                 ));
                             }
                         }
-                        Err(_) => continue,
+                        Err(_) => {}
                     }
                     let mut j = index + 1;
                     while j < len {
@@ -84,7 +84,9 @@ impl Lattice {
                                 }
                                 cursor = next;
                             }
-                            Err(_) => break,
+                            Err(_) => {
+                                break;
+                            }
                         }
                         j += 1;
                     }
