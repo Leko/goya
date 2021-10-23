@@ -91,17 +91,16 @@ impl Lattice {
                         j += 1;
                     }
                 }
-                Err(_) => {
-                    if let InvokeTiming::Fallback = def.timing {
-                        let surface_form = dict.take_unknown_chars_seq(def, text, &index);
-                        open_indices.push_back(index + surface_form.chars().count());
-                        for (wid, _) in dict.get_unknown_morphemes_by_class(&def.class) {
-                            indices[index].push((
-                                WordIdentifier::Unknown(wid, surface_form.to_string()),
-                                surface_form.chars().count(),
-                            ));
-                        }
-                    }
+                Err(_) => {}
+            }
+            if indices[index].is_empty() && matches!(def.timing, InvokeTiming::Fallback) {
+                let surface_form = dict.take_unknown_chars_seq(def, text, &index);
+                open_indices.push_back(index + surface_form.chars().count());
+                for (wid, _) in dict.get_unknown_morphemes_by_class(&def.class) {
+                    indices[index].push((
+                        WordIdentifier::Unknown(wid, surface_form.to_string()),
+                        surface_form.chars().count(),
+                    ));
                 }
             }
         }
