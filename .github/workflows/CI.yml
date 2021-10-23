@@ -43,6 +43,6 @@ jobs:
           cd benchmarks
           ./scripts/setup
           npm i
-      - run: node goya.js < ita-corpus.txt
-      - run: node kuromoji.js < ita-corpus.txt
-      - run: node bench.js < ita-corpus.txt
+      - run: cd benchmarks && node goya.js < ita-corpus.txt
+      - run: cd benchmarks && node kuromoji.js < ita-corpus.txt
+      - run: cd benchmarks && node bench.js < ita-corpus.txt
