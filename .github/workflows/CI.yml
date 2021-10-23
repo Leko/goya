@@ -20,9 +20,9 @@ jobs:
           tar -zxvf $NAME
           rm -rf $NAME
           cargo run -p goya-cli --release -- compile mecab-ipadic-2.7.0-20070801
-      - run: cargo clippy
-      - run: cargo build
-      - run: cargo test
+      - run: cargo clippy --workspace --exclude goya-core --exclude goya-features
+      - run: cargo build --workspace --exclude goya-core --exclude goya-features
+      - run: cargo test --workspace --exclude goya-core --exclude goya-features
   wasm:
     runs-on: ubuntu-latest
     steps:
