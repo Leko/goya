@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+cd $1
+wasm-pack build --release --out-dir pkg/web --target web
+wasm-pack build --release --out-dir pkg/nodejs --target nodejs
+
+mv pkg/web/README.md pkg/
+mv pkg/nodejs/package.json pkg/
+rm -rf pkg/{web,nodejs}/package.json
+
+node <<CODE
+const fs = require('fs')
+const path = require('path')
+const pkg = require('./pkg/package.json')
+
+pkg.author = pkg.collaborators[0]
+delete pkg.collaborators
+
+pkg.browser = path.join('web', pkg.main)
+pkg.main = path.join('nodejs', pkg.main)
+pkg.types = path.join('nodejs', pkg.types)
+pkg.files = pkg.files.map(f => path.join('nodejs', f)).concat(pkg.files.map(f => path.join('web', f)))
+
+fs.writeFileSync('./pkg/package.json', JSON.stringify(pkg, null, 2))
+CODE
