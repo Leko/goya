@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+wget https://github.com/mmorise/ita-corpus/raw/main/emotion_transcript_utf8.txt
+wget https://github.com/mmorise/ita-corpus/raw/main/recitation_transcript_utf8.txt
+
+cat emotion_transcript_utf8.txt recitation_transcript_utf8.txt > transcript_utf8.csv
+rm -f emotion_transcript_utf8.txt recitation_transcript_utf8.txt
+
+node <<CODE >> ita-corpus.txt
+const lines = require('fs').readFileSync('transcript_utf8.csv', 'utf8')
+  .trim()
+  .split('\n')
+  .map(line => line.split(',')[0].split(':')[1])
+  .join('\n')
+console.log(lines)
+CODE

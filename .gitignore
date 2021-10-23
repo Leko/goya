@@ -11,3 +11,4 @@ Cargo.lock
 .vscode/
 mecab-ipadic-2.7.0-20070801
 __generated__
+node_modules

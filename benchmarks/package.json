@@ -1,0 +1,22 @@
+{
+  "name": "benchmarks",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "preinstall": "npm run build:core && npm run build:features",
+    "build:core": "wasm-pack build --release --target nodejs ../wasm-core",
+    "build:features": "wasm-pack build --release --target nodejs ../wasm-features",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "kuromoji": "^0.1.2",
+    "wasm-core": "../wasm-core/pkg",
+    "wasm-features": "../wasm-features/pkg"
+  },
+  "devDependencies": {
+    "benchmark": "^2.1.4"
+  }
+}
