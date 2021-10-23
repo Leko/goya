@@ -45,53 +45,41 @@ impl Lattice {
                 }
             }
 
-            match da.init(c) {
-                Ok((mut cursor, _)) => {
-                    match da.stop(cursor as usize) {
-                        Ok(wid) => {
-                            open_indices.push_back(index + 1);
-                            for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
-                                indices[index].push((
-                                    WordIdentifier::Known(
-                                        *wid,
-                                        text.chars().skip(index).take(1).collect(),
-                                    ),
-                                    1,
-                                ));
-                            }
-                        }
-                        Err(_) => {}
-                    }
-                    let mut j = index + 1;
-                    while j < len {
-                        let c = text.chars().nth(j).unwrap();
-                        match da.transition(cursor as usize, c) {
-                            Ok((next, _)) => {
-                                if let Ok(wid) = da.stop(next as usize) {
-                                    open_indices.push_back(j + 1);
-                                    for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
-                                        indices[index].push((
-                                            WordIdentifier::Known(
-                                                *wid,
-                                                text.chars()
-                                                    .skip(index)
-                                                    .take(j + 1 - index)
-                                                    .collect(),
-                                            ),
-                                            j + 1 - index,
-                                        ));
-                                    }
-                                }
-                                cursor = next;
-                            }
-                            Err(_) => {
-                                break;
-                            }
-                        }
-                        j += 1;
+            if let Ok((mut cursor, _)) = da.init(c) {
+                if let Ok(wid) = da.stop(cursor as usize) {
+                    open_indices.push_back(index + 1);
+                    for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
+                        indices[index].push((
+                            WordIdentifier::Known(*wid, text.chars().skip(index).take(1).collect()),
+                            1,
+                        ));
                     }
                 }
-                Err(_) => {}
+                let mut j = index + 1;
+                while j < len {
+                    let c = text.chars().nth(j).unwrap();
+                    match da.transition(cursor as usize, c) {
+                        Ok((next, _)) => {
+                            if let Ok(wid) = da.stop(next as usize) {
+                                open_indices.push_back(j + 1);
+                                for wid in dict.resolve_homonyms(&wid).unwrap().iter() {
+                                    indices[index].push((
+                                        WordIdentifier::Known(
+                                            *wid,
+                                            text.chars().skip(index).take(j + 1 - index).collect(),
+                                        ),
+                                        j + 1 - index,
+                                    ));
+                                }
+                            }
+                            cursor = next;
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                    j += 1;
+                }
             }
             if indices[index].is_empty() && matches!(def.timing, InvokeTiming::Fallback) {
                 let surface_form = dict.take_unknown_chars_seq(def, text, &index);
