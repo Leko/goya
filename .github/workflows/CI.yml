@@ -32,6 +32,7 @@ jobs:
           node-version: "16"
           cache: "npm"
           cache-dependency-path: benchmarks/package-lock.json
+      - run: ./scripts/vercel-install
       - run: |
           NAME='mecab-ipadic.tar.gz'
           curl -v -L 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -o $NAME
