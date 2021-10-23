@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 bytesize = {version = "1.1.0", features = ["serde"]}
-clap = "3.0.0-beta.4"
+clap = "3.0.0-beta.5"
 console = "0.14"
 dirs = "4.0"
 futures = "0.3.17"
