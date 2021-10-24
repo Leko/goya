@@ -11,7 +11,7 @@ version = "0.1.8"
 csv = "1.1"
 encoding_rs = "0.8"
 glob = "0.3"
-goya = {version = "^0.1.8", path = "../goya"}
+goya = {version = "^0.1.9", path = "../goya"}
 indexmap = {version = "1.7", features = ["serde"]}
 regex = "1.5"
 rkyv = {version = "0.7.19", features = ["indexmap"]}
