@@ -1,0 +1,43 @@
+name: CD
+
+on:
+  push:
+    tags: [v*]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  crates.io:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_IO_TOKEN }}
+      - run: cd goya && cargo publish
+      - run: cd ipadic && cargo publish
+      - run: cd goya-cli && cargo publish
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          cache: "npm"
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - run: ./scripts/build-wasm wasm-core && npm publish
+      - run: cd wasm-core && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: ./scripts/build-wasm wasm-features && npm publish
+      - run: cd wasm-features && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
