@@ -57,7 +57,7 @@ echo すもももももももものうち | goya --dicdir=/path/to/generated
 ## Release
 
 ```
-cargo release <patch|minor|major> --workspace --no-tag --skip-publish
-git tag {{VERSION}}
-git push origin --follow-tags
+cargo release <patch|minor|major> --workspace --no-tag --skip-publish --dependent-version Upgrade
+git tag v{{VERSION}}
+git push origin v{{VERSION}}
 ```
