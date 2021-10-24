@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 [dependencies]
 futures = "0.3.17"
 goya = {version = "^0.1.7", path = "../goya"}
-goya-ipadic = {version = "^0.1.6", path = "../ipadic"}
+goya-ipadic = {version = "^0.1.7", path = "../ipadic"}
 lazy_static = "1.4"
 rkyv = {version = "0.7.19", features = ["indexmap"]}
 rmp-serde = "1.0.0-beta.2"
