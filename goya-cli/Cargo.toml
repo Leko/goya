@@ -6,7 +6,7 @@ edition = "2018"
 license = "Apache-2.0 OR MIT"
 name = "goya-cli"
 repository = "https://github.com/Leko/goya"
-version = "0.1.6"
+version = "0.1.7"
 
 [[bin]]
 name = "goya"
