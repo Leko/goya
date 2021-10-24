@@ -9,7 +9,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  crates.io:
+  crates-io:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
