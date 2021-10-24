@@ -53,3 +53,11 @@ If you specified the --dicdir option when compiling the dictionary, you should a
 ```
 echo すもももももももものうち | goya --dicdir=/path/to/generated
 ```
+
+## Release
+
+```
+cargo release <patch|minor|major> --workspace --no-tag --skip-publish
+git tag {{VERSION}}
+git push origin --follow-tags
+```
