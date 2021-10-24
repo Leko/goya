@@ -34,6 +34,12 @@ jobs:
         with:
           toolchain: nightly
       - run: cargo install wasm-pack
+      - run: |
+          NAME='mecab-ipadic.tar.gz'
+          curl -v -L 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -o $NAME
+          tar -zxvf $NAME
+          rm -rf $NAME
+          ./scripts/build-dict mecab-ipadic-2.7.0-20070801
       - run: ./scripts/build-wasm wasm-core && npm publish
       - run: cd wasm-core && npm publish
         env:
