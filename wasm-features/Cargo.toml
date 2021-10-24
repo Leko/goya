@@ -13,7 +13,7 @@ version = "0.1.3"
 crate-type = ["cdylib"]
 
 [dependencies]
-goya = {version = "0.1.1", path = "../goya"}
+goya = {version = "^0.1.4", path = "../goya"}
 lazy_static = "1.4"
 rmp-serde = "1.0.0-beta.2"
 serde-wasm-bindgen = "0.3.1"
