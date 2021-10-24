@@ -5,7 +5,7 @@ description = "IPA dictionary for Goya"
 edition = "2018"
 license = "Apache-2.0 OR MIT"
 name = "goya-ipadic"
-version = "0.1.5"
+version = "0.1.6"
 
 [dependencies]
 csv = "1.1"
