@@ -33,6 +33,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+      - run: cargo install wasm-pack
       - run: ./scripts/build-wasm wasm-core && npm publish
       - run: cd wasm-core && npm publish
         env:
