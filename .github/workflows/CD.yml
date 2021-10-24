@@ -40,11 +40,11 @@ jobs:
           tar -zxvf $NAME
           rm -rf $NAME
           ./scripts/build-dict mecab-ipadic-2.7.0-20070801
-      - run: ./scripts/build-wasm wasm-core && npm publish
+      - run: ./scripts/build-wasm wasm-core
       - run: cd wasm-core && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: ./scripts/build-wasm wasm-features && npm publish
+      - run: ./scripts/build-wasm wasm-features
       - run: cd wasm-features && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
