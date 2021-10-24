@@ -20,9 +20,9 @@ jobs:
         with:
           command: login
           args: ${{ secrets.CRATES_IO_TOKEN }}
-      - run: cd goya && cargo publish && sleep 10
-      - run: cd ipadic && cargo publish && sleep 10
-      - run: cd goya-cli && cargo publish && sleep 10
+      - run: cd goya && cargo publish && sleep 30
+      - run: cd ipadic && cargo publish && sleep 30
+      - run: cd goya-cli && cargo publish && sleep 30
   npm:
     runs-on: ubuntu-latest
     steps:
