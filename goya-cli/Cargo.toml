@@ -19,7 +19,7 @@ console = "0.14"
 dirs = "4.0"
 futures = "0.3.17"
 goya = {version = "^0.1.4", path = "../goya"}
-goya-ipadic = {version = "0.1.1", path = "../ipadic"}
+goya-ipadic = {version = "^0.1.4", path = "../ipadic"}
 indexmap = {version = "1.7", features = ["serde"]}
 rkyv = {version = "0.7.19", features = ["indexmap"]}
 rmp-serde = "1.0.0-beta.2"
