@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          NAME='mecab-ipadic.tar.gz'
+          curl -v -L 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -o $NAME
+          tar -zxvf $NAME
+          rm -rf $NAME
+          cargo run -p goya-cli --release -- compile mecab-ipadic-2.7.0-20070801
+      - run: cargo clippy --workspace --exclude goya-core --exclude goya-features
+      - run: cargo build --workspace --exclude goya-core --exclude goya-features
+      - run: cargo test --workspace --exclude goya-core --exclude goya-features
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+          cache: "npm"
+          cache-dependency-path: benchmarks/package-lock.json
+      - run: ./scripts/vercel-install
+      - run: |
+          NAME='mecab-ipadic.tar.gz'
+          curl -v -L 'https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM' -o $NAME
+          tar -zxvf $NAME
+          rm -rf $NAME
+          ./scripts/build-dict mecab-ipadic-2.7.0-20070801
+      - run: |
+          cd benchmarks
+          ./scripts/setup
+          npm i
+      - run: cd benchmarks && node goya.js < ita-corpus.txt
+      - run: cd benchmarks && node kuromoji.js < ita-corpus.txt
+      - run: cd benchmarks && node bench.js < ita-corpus.txt

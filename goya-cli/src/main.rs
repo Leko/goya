@@ -2,7 +2,7 @@ mod build;
 mod path_util;
 mod repl;
 
-use clap::Clap;
+use clap::Parser;
 use futures::executor::block_on;
 use futures::future;
 use goya::double_array::DoubleArray;
@@ -12,7 +12,7 @@ use repl::Format;
 use rkyv::{archived_root, Deserialize, Infallible};
 use std::fs;
 
-#[derive(Clap)]
+#[derive(Parser)]
 struct Opts {
     /// `~/.goya/dict` by default
     #[clap(short, long)]
@@ -23,14 +23,14 @@ struct Opts {
     subcmd: Option<SubCommand>,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Compile(Compile),
     Clean,
 }
 
 /// A subcommand for controlling testing
-#[derive(Clap)]
+#[derive(Parser)]
 struct Compile {
     /// Path to the IPAdic directory
     dicpath: String,
