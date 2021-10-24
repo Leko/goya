@@ -41,10 +41,10 @@ jobs:
           rm -rf $NAME
           ./scripts/build-dict mecab-ipadic-2.7.0-20070801
       - run: ./scripts/build-wasm wasm-core
-      - run: cd wasm-core && npm publish
+      - run: cd wasm-core/pkg && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: ./scripts/build-wasm wasm-features
-      - run: cd wasm-features && npm publish
+      - run: cd wasm-features/pkg && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
