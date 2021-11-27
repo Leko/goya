@@ -3,8 +3,8 @@
 [![goya at crates.io](https://img.shields.io/crates/v/goya.svg)](https://crates.io/crates/goya)
 [![goya at docs.rs](https://docs.rs/goya/badge.svg)](https://docs.rs/goya)
 
-Japanese Morphological Analyzer written in Rust.  
-Goya's main goal is to compile to WebAssembly for morphological analysis in browsers and other JavaScript runtimes. In addition, it can be used with the CLI and Rust.
+Goya is a Japanese Morphological Analyzer written in Rust.  
+The main goal is to compile to WebAssembly for morphological analysis in browsers and other JavaScript runtimes. In addition, it can be used with the CLI and Rust.
 
 [Try Goya playground](https://goya.vercel.app/). It uses the Goya-wasm from WebWorker.
 
@@ -22,19 +22,21 @@ cargo install goya-cli
 
 ### Compile the IPA dictionary
 
-Generates a binary dictionary for morphological analysis. It may take a minute or two.
+Compile the IPA dictionary to generate a binary dictionary for morphological analysis. It may take a few minutes.
 
 ```
 goya compile /path/to/ipadic
 ```
 
-Binary dictionaries are generated in the ~/.goya directory by default. You can also change the output destination with the --dicdir option.
+The binary dictionary will be generated in the `~/.goya` directory by default. You can change the destination with the `--dicdir` option.
 
 ```
 goya --dicdir=/path/to/generated compile /path/to/ipadic
 ```
 
 ### Run Morphological Analysis
+
+Goya takes input from STDIN. The easiest way is using the echo command and pipe it to the Goya.
 
 ```
 $ echo すもももももももものうち | goya
@@ -48,7 +50,7 @@ $ echo すもももももももものうち | goya
 EOS
 ```
 
-If you specified the --dicdir option when compiling the dictionary, you should also specify it when running the goya command.
+If you specified the `--dicdir` option when compiling the dictionary, you should also specify it when running the goya command.
 
 ```
 echo すもももももももものうち | goya --dicdir=/path/to/generated
