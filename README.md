@@ -6,7 +6,7 @@
 Goya is a Japanese Morphological Analyzer written in Rust.  
 The main goal is to compile to WebAssembly for morphological analysis in browsers and other JavaScript runtimes. In addition, it can be used with the CLI and Rust.
 
-[Try Goya playground](https://goya.vercel.app/). It uses the Goya-wasm from WebWorker.
+[Try Goya playground](https://goya.pages.dev/). It uses the Goya-wasm from WebWorker.
 
 ## Getting started
 
