@@ -20,9 +20,10 @@ const worker = wrap<GoyaCoreAPI>(
 );
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const initText = new URL(location.href).searchParams.get("text");
 
 export function App() {
-  const [text, setText] = useState("すもももももももものうち");
+  const [text, setText] = useState(initText ?? "すもももももももものうち");
   const [result, setResult] = useState<{
     dot: string;
     wakachi: string[];
